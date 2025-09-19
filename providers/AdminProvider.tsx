@@ -229,7 +229,7 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
     // Mock login with role-based authentication
     const credentials = {
       'maria@deliempanada.com': { password: 'admin123', role: 'manager' },
-      'employee1': { password: 'work123', role: 'kitchen' }
+      'employee1@deliempanada.com': { password: 'work123', role: 'kitchen' }
     };
 
     const credential = credentials[email as keyof typeof credentials];
