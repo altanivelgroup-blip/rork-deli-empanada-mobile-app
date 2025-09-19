@@ -28,9 +28,11 @@ import {
   MapPin,
   User,
   ChefHat,
-  Truck
+  Truck,
+  ArrowLeft
 } from 'lucide-react-native';
 import { Order, OrderStatus } from '@/types/admin';
+import { router } from 'expo-router';
 
 const getScreenDimensions = () => {
   const { width } = Dimensions.get('window');
@@ -436,6 +438,14 @@ export default function AdminDashboardScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.push('/')}
+          testID="back-to-menu"
+        >
+          <ArrowLeft size={24} color="#CC0000" />
+        </TouchableOpacity>
+        
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>DELI EMPANADA</Text>
           <Text style={styles.headerSubtitle}>
@@ -562,6 +572,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0'
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 12,
+    borderRadius: 8,
+    backgroundColor: '#F8F9FA'
   },
   headerLeft: {
     flex: 1
