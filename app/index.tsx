@@ -105,7 +105,7 @@ export default function WelcomeScreen() {
               onPress={() => router.push('/admin')}
               activeOpacity={0.7}
             >
-              <Text style={styles.adminButtonText}>Panel Admin</Text>
+              <Text style={styles.adminButtonText}>SIGN IN</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
