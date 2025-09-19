@@ -11,7 +11,7 @@ import {
   Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+
 import { useAdmin } from '@/providers/AdminProvider';
 import { Lock, User, Eye, EyeOff } from 'lucide-react-native';
 
@@ -21,7 +21,7 @@ export default function AdminLoginScreen() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { login } = useAdmin();
-  const router = useRouter();
+
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -34,7 +34,7 @@ export default function AdminLoginScreen() {
       const result = await login(email.trim(), password);
       if (result.success && result.user) {
         console.log('Login successful:', result.user.name, result.user.role);
-        router.replace('/admin-dashboard');
+        // Stay in admin route, let AdminScreen handle the routing
       } else {
         Alert.alert('Error de Acceso', result.error || 'Credenciales inválidas');
       }

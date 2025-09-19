@@ -9,7 +9,7 @@ import {
   Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+
 import { useAdmin } from '@/providers/AdminProvider';
 import {
   Clock,
@@ -53,18 +53,13 @@ export default function AdminDashboardScreen() {
     completedOrders
   } = useAdmin();
   
-  const router = useRouter();
+
   const [selectedTab, setSelectedTab] = useState<'orders' | 'analytics'>('orders');
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!currentUser) {
-      router.replace('/admin-login');
-    }
-  }, [currentUser, router]);
+  // No need to redirect - AdminScreen handles this
 
   // Auto-refresh orders every 30 seconds
   useEffect(() => {
@@ -97,7 +92,7 @@ export default function AdminDashboardScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/admin-login');
+            // Stay in admin route, let AdminScreen handle the routing
           }
         }
       ]
