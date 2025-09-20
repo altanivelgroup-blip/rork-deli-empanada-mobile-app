@@ -59,13 +59,17 @@ export default function WelcomeScreen() {
               },
             ]}
           >
-            <View style={styles.logoBadge}>
+            <TouchableOpacity
+              style={styles.logoBadge}
+              onPress={() => router.push('/admin')}
+              activeOpacity={0.8}
+            >
               <Image 
                 source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/ymk4xvks1kuz0it56htjb' }}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
-            </View>
+            </TouchableOpacity>
             <Text style={styles.logoText}>DELI</Text>
             <Text style={styles.logoSubtext}>EMPANADA</Text>
           </Animated.View>
@@ -99,14 +103,6 @@ export default function WelcomeScreen() {
             <Text style={styles.deliveryInfo}>
               🚚 Entrega a domicilio disponible
             </Text>
-
-            <TouchableOpacity
-              style={styles.adminButton}
-              onPress={() => router.push('/admin')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.adminButtonText}>SIGN IN</Text>
-            </TouchableOpacity>
           </Animated.View>
         </View>
 
@@ -211,19 +207,5 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     opacity: 0.8,
   },
-  adminButton: {
-    marginTop: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  adminButtonText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    opacity: 0.8,
-  },
+
 });
