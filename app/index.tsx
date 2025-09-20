@@ -111,7 +111,7 @@ export default function WelcomeScreen() {
         </View>
 
         <Text style={styles.footer}>
-          Horario: Lun-Dom 11:00 AM - 10:00 PM
+          Horario: Lun-Sab 8:30 AM - 6:30 PM
         </Text>
       </SafeAreaView>
     </LinearGradient>
