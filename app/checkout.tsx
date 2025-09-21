@@ -42,7 +42,7 @@ export default function CheckoutScreen() {
     router.replace('/confirmation');
   };
 
-  const total = getTotalPrice() + (deliveryType === 'delivery' ? 5000 : 0);
+  const total = getTotalPrice() + (deliveryType === 'delivery' ? 6000 : 0);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -68,7 +68,7 @@ export default function CheckoutScreen() {
                 ]}>
                   Domicilio
                 </Text>
-                <Text style={styles.deliveryFee}>+$5,000</Text>
+                <Text style={styles.deliveryFee}>+$6,000</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
