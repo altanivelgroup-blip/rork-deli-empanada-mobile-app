@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native";
 import { CartProvider } from "@/providers/CartProvider";
 import { AdminProvider } from "@/providers/AdminProvider";
+import { FirebaseProvider } from "@/providers/FirebaseProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -98,11 +99,13 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={styles.container}>
-        <AdminProvider>
-          <CartProvider>
-            <RootLayoutNav />
-          </CartProvider>
-        </AdminProvider>
+        <FirebaseProvider>
+          <AdminProvider>
+            <CartProvider>
+              <RootLayoutNav />
+            </CartProvider>
+          </AdminProvider>
+        </FirebaseProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
   );
