@@ -4,11 +4,27 @@ export const menuData: Record<'empanadas' | 'bebidas', MenuItem[]> = {
   empanadas: [
     {
       id: 'emp-1',
-      name: 'Harina, Añejo y Criollas',
-      description: 'Relleno típico de harina, arroz, lentejas, carne, pollo huevo. Criollas: papa criolla y carne desmechada. Una delicia con masa de añejo.',
+      name: 'Harina',
+      description: 'Relleno típico de harina, arroz, lentejas, carne, pollo huevo.',
+      price: 2500,
+      category: 'empanadas',
+      emoji: '🌾',
+    },
+    {
+      id: 'emp-1a',
+      name: 'Añejo',
+      description: 'Una delicia con masa de añejo.',
       price: 2500,
       category: 'empanadas',
       emoji: '🥟',
+    },
+    {
+      id: 'emp-1b',
+      name: 'Criollas',
+      description: 'Papa criolla y carne desmechada.',
+      price: 2500,
+      category: 'empanadas',
+      emoji: '🥔',
     },
     {
       id: 'emp-2',
