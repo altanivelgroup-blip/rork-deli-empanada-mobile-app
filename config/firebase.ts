@@ -14,12 +14,29 @@ const firebaseConfig = {
   appId: "your-app-id"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Check if Firebase is properly configured
+const isFirebaseConfigured = firebaseConfig.apiKey !== "your-api-key";
 
-// Initialize Firebase services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+let app: any = null;
+let auth: any = null;
+let db: any = null;
+let storage: any = null;
 
+if (isFirebaseConfigured) {
+  try {
+    // Initialize Firebase
+    app = initializeApp(firebaseConfig);
+    
+    // Initialize Firebase services
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+  } catch (error) {
+    console.warn('Firebase initialization failed:', error);
+  }
+} else {
+  console.warn('Firebase not configured. Using mock data.');
+}
+
+export { auth, db, storage };
 export default app;

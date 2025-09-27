@@ -21,6 +21,11 @@ export const [FirebaseProvider, useFirebase] = createContextHook<FirebaseContext
   const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+    
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
       if (authUser && (!authUser.email || authUser.email.trim().length === 0)) {
         console.error('Invalid user data');
@@ -34,6 +39,10 @@ export const [FirebaseProvider, useFirebase] = createContextHook<FirebaseContext
   }, []);
 
   useEffect(() => {
+    if (!db) {
+      return;
+    }
+    
     // Listen to orders collection in real-time
     const ordersRef = collection(db, 'orders');
     const q = query(ordersRef, orderBy('createdAt', 'desc'));
@@ -50,6 +59,10 @@ export const [FirebaseProvider, useFirebase] = createContextHook<FirebaseContext
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (!auth) {
+      throw new Error('Firebase not configured');
+    }
+    
     if (!email || !email.trim() || email.length > 100) {
       throw new Error('Invalid email');
     }
@@ -69,6 +82,10 @@ export const [FirebaseProvider, useFirebase] = createContextHook<FirebaseContext
   }, []);
 
   const signOutUser = useCallback(async () => {
+    if (!auth) {
+      throw new Error('Firebase not configured');
+    }
+    
     try {
       await signOut(auth);
     } catch (error) {
@@ -78,6 +95,11 @@ export const [FirebaseProvider, useFirebase] = createContextHook<FirebaseContext
   }, []);
 
   const addOrder = useCallback(async (order: any) => {
+    if (!db) {
+      console.warn('Firebase not configured, order not saved to database');
+      return;
+    }
+    
     if (!order || typeof order !== 'object') {
       throw new Error('Invalid order data');
     }
@@ -96,6 +118,11 @@ export const [FirebaseProvider, useFirebase] = createContextHook<FirebaseContext
   }, []);
 
   const updateOrder = useCallback(async (orderId: string, updates: any) => {
+    if (!db) {
+      console.warn('Firebase not configured, order update not saved to database');
+      return;
+    }
+    
     if (!orderId || !orderId.trim() || orderId.length > 100) {
       throw new Error('Invalid order ID');
     }
@@ -118,6 +145,11 @@ export const [FirebaseProvider, useFirebase] = createContextHook<FirebaseContext
   }, []);
 
   const deleteOrder = useCallback(async (orderId: string) => {
+    if (!db) {
+      console.warn('Firebase not configured, order deletion not saved to database');
+      return;
+    }
+    
     if (!orderId || !orderId.trim() || orderId.length > 100) {
       throw new Error('Invalid order ID');
     }
