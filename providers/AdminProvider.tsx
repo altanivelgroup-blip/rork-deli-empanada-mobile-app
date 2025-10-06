@@ -136,12 +136,10 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Clear any existing user session to force fresh login
-        await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-        
-        const [storedOrders, storedEmployees] = await Promise.all([
+        const [storedOrders, storedEmployees, storedUser] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.ORDERS),
-          AsyncStorage.getItem(STORAGE_KEYS.EMPLOYEES)
+          AsyncStorage.getItem(STORAGE_KEYS.EMPLOYEES),
+          AsyncStorage.getItem(STORAGE_KEYS.CURRENT_USER)
         ]);
 
         // Initialize with mock data if no stored data
@@ -152,7 +150,7 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
         })) : generateMockOrders();
         
         const employeesData = storedEmployees ? JSON.parse(storedEmployees) : generateMockEmployees();
-        const userData = null; // No default user - must login
+        const userData = storedUser ? JSON.parse(storedUser) : null;
 
         setOrders(ordersData);
         setEmployees(employeesData);
@@ -165,13 +163,12 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
         if (!storedEmployees) {
           AsyncStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employeesData));
         }
-        // Don't auto-save null user - only save after successful login
       } catch (error) {
         console.error('Error loading admin data:', error);
         // Fallback to mock data
         setOrders(generateMockOrders());
         setEmployees(generateMockEmployees());
-        setCurrentUser(null); // No default user - must login
+        setCurrentUser(null);
       } finally {
         setIsLoading(false);
       }
