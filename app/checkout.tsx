@@ -74,7 +74,7 @@ export default function CheckoutScreen() {
           createdAt: serverTimestamp(),
         };
 
-        await addDoc(collection(db, 'orders'), orderData);
+        await addDoc(collection(db, 'pedidos'), orderData);
         console.log('✅ Order saved to Firestore');
       }
 
@@ -115,7 +115,7 @@ export default function CheckoutScreen() {
           createdAt: serverTimestamp(),
         };
 
-        await addDoc(collection(db, 'orders'), orderData);
+        await addDoc(collection(db, 'pedidos'), orderData);
         console.log('✅ Cash order saved to Firestore');
       }
 
