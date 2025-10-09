@@ -10,6 +10,7 @@ import {
   Animated,
   useWindowDimensions,
   Platform,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
@@ -116,6 +117,7 @@ export default function EstadisticasScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedBranch, setSelectedBranch] = useState<Branch>('Todas');
   const [exporting, setExporting] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
 
   const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com';
   const isMobile = width <= 800;
@@ -306,6 +308,11 @@ export default function EstadisticasScreen() {
     }
   }, [orders, selectedBranch]);
 
+  const handleConfirmExport = useCallback(() => {
+    setConfirmVisible(false);
+    handleExport();
+  }, [handleExport]);
+
   if (!currentUser || !isAdmin) {
     return null;
   }
@@ -344,7 +351,7 @@ export default function EstadisticasScreen() {
         />
         <TouchableOpacity
           style={[styles.exportButton, exporting && styles.exportButtonDisabled]}
-          onPress={handleExport}
+          onPress={() => setConfirmVisible(true)}
           disabled={exporting}
         >
           {exporting ? (
@@ -503,6 +510,38 @@ export default function EstadisticasScreen() {
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        transparent
+        visible={confirmVisible}
+        animationType="fade"
+        onRequestClose={() => setConfirmVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              ¿Deseas generar el informe de hoy?
+            </Text>
+            <Text style={styles.modalMessage}>
+              Se generará el reporte de ventas del día y se abrirá la opción para compartirlo.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={() => setConfirmVisible(false)}
+                style={styles.modalButtonCancel}
+              >
+                <Text style={styles.modalButtonCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmExport}
+                style={styles.modalButtonConfirm}
+              >
+                <Text style={styles.modalButtonConfirmText}>Generar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -792,5 +831,56 @@ const styles = StyleSheet.create({
     color: Colors.light.textLight,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#CC0000',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+  },
+  modalButtonCancel: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#ccc',
+  },
+  modalButtonCancelText: {
+    color: '#333',
+    fontWeight: '600',
+  },
+  modalButtonConfirm: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#FFD700',
+  },
+  modalButtonConfirmText: {
+    color: '#CC0000',
+    fontWeight: '700',
   },
 });
