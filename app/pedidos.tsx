@@ -423,14 +423,14 @@ export default function PedidosScreen() {
         </View>
       </View>
 
-      <View style={styles.tabBar}>
-        <TouchableOpacity style={[styles.tab, styles.tabActive]}>
-          <Package size={18} color={Colors.light.primary} />
-          <Text style={[styles.tabText, styles.tabTextActive]}>
-            Pedidos ({orders.length})
-          </Text>
-        </TouchableOpacity>
-        {isAdmin && (
+      {isAdmin && (
+        <View style={styles.tabBar}>
+          <TouchableOpacity style={[styles.tab, styles.tabActive]}>
+            <Package size={18} color={Colors.light.primary} />
+            <Text style={[styles.tabText, styles.tabTextActive]}>
+              Pedidos ({orders.length})
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.tab}
             onPress={() => router.push('/estadisticas')}
@@ -440,8 +440,8 @@ export default function PedidosScreen() {
               Estadísticas
             </Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
 
       <View style={styles.summaryCards}>
         <View style={[styles.summaryCard, { backgroundColor: '#FFF5F5' }]}>
