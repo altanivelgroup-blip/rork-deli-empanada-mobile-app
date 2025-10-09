@@ -46,7 +46,7 @@ interface Order {
 }
 
 export default function PedidosScreen() {
-  const { currentUser } = useAdmin();
+  const { currentUser, hasPermission, isManager } = useAdmin();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -188,7 +188,7 @@ export default function PedidosScreen() {
             Pedidos ({orders.length})
           </Text>
         </TouchableOpacity>
-        {isAdmin && (
+        {(isManager || hasPermission('viewAnalytics')) && (
           <TouchableOpacity 
             style={styles.tab}
             onPress={() => router.push('/estadisticas')}
