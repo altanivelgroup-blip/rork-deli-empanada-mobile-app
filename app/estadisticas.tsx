@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,9 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/config/firebase';
 import { useAdmin } from '@/providers/AdminProvider';
 import Colors from '@/constants/colors';
 import {
@@ -22,89 +21,26 @@ import {
   Package,
   ArrowLeft,
   BarChart3,
-  Bell,
   LogOut,
   Target,
   Calendar,
 } from 'lucide-react-native';
 
-interface Order {
-  id: string;
-  customerName: string;
-  contact: string;
-  address: string;
-  items: { id: string; name: string; quantity: number; price: number }[];
-  totalAmount: number;
-  currency: string;
-  paymentMethod: string;
-  status: string;
-  createdAt: any;
-  branch?: 'Norte' | 'Sur';
-}
-
 export default function EstadisticasScreen() {
-  const { currentUser } = useAdmin();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentUser, orders, isLoading, isManager, logout } = useAdmin();
 
-  const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com' || currentUser?.email === 'maria@deliempanada.com' || (currentUser as any)?.role === 'admin';
-
-  useEffect(() => {
-    if (!currentUser) {
-      console.log('❌ No current user, redirecting to login');
-      router.replace('/admin-login');
-      return;
-    }
-
-    if (!isAdmin) {
-      console.log('❌ User is not admin, redirecting to pedidos');
-      router.replace('/pedidos');
-      return;
-    }
-
-    if (!db) {
-      console.warn('⚠️ Firebase not configured');
-      setLoading(false);
-      return;
-    }
-
-    console.log('✅ Fetching orders');
-
-    const q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const ordersData: Order[] = [];
-        snapshot.forEach((doc) => {
-          ordersData.push({
-            id: doc.id,
-            ...doc.data(),
-          } as Order);
-        });
-        console.log(`📊 Loaded ${ordersData.length} orders`);
-        setOrders(ordersData);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('❌ Error fetching orders:', error);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [currentUser, isAdmin]);
+  const isAdmin = currentUser?.email === 'maria@deliempanada.com' || isManager;
 
   const todayStats = useMemo(() => {
     const today = new Date();
     const todayOrders = orders.filter((order) => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
       return orderDate.toDateString() === today.toDateString();
     });
 
     const completedOrders = todayOrders.filter((o) => o.status === 'delivered');
     const pendingOrders = todayOrders.filter((o) =>
-      ['pending', 'paid', 'preparing', 'out_for_delivery'].includes(o.status)
+      ['pending', 'paid', 'preparing', 'out_for_delivery', 'new', 'accepted', 'ready'].includes(o.status)
     );
 
     const revenue = completedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
@@ -141,7 +77,7 @@ export default function EstadisticasScreen() {
     weekStart.setDate(today.getDate() - 7);
 
     const weekOrders = orders.filter((order) => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
       return orderDate >= weekStart && order.status === 'delivered';
     });
 
@@ -150,7 +86,7 @@ export default function EstadisticasScreen() {
     const prevWeekStart = new Date(weekStart);
     prevWeekStart.setDate(weekStart.getDate() - 7);
     const prevWeekOrders = orders.filter((order) => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
       return orderDate >= prevWeekStart && orderDate < weekStart && order.status === 'delivered';
     });
     const prevWeekRevenue = prevWeekOrders.reduce((sum, order) => sum + order.totalAmount, 0);
@@ -159,7 +95,7 @@ export default function EstadisticasScreen() {
 
     const dayCounts: { [day: string]: number } = {};
     weekOrders.forEach((order) => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
       const dayName = orderDate.toLocaleDateString('es-ES', { weekday: 'long' });
       dayCounts[dayName] = (dayCounts[dayName] || 0) + 1;
     });
@@ -182,7 +118,7 @@ export default function EstadisticasScreen() {
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
     const monthOrders = orders.filter((order) => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
       return orderDate >= monthStart && order.status === 'delivered';
     });
 
@@ -191,7 +127,7 @@ export default function EstadisticasScreen() {
     const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
     const prevMonthOrders = orders.filter((order) => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
       return orderDate >= prevMonthStart && orderDate <= prevMonthEnd && order.status === 'delivered';
     });
     const prevMonthRevenue = prevMonthOrders.reduce((sum, order) => sum + order.totalAmount, 0);
@@ -210,11 +146,35 @@ export default function EstadisticasScreen() {
     return `$ ${amount.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
-  if (!currentUser || !isAdmin) {
+  const handleLogout = async () => {
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que deseas cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/admin-login');
+          }
+        }
+      ]
+    );
+  };
+
+  if (!currentUser) {
+    router.replace('/admin-login');
     return null;
   }
 
-  if (loading) {
+  if (!isAdmin) {
+    router.replace('/pedidos');
+    return null;
+  }
+
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -225,7 +185,7 @@ export default function EstadisticasScreen() {
     );
   }
 
-  const pendingOrdersCount = orders.filter(o => ['pending', 'paid', 'preparing', 'out_for_delivery'].includes(o.status)).length;
+  const pendingOrdersCount = orders.filter(o => ['pending', 'paid', 'preparing', 'out_for_delivery', 'new', 'accepted', 'ready'].includes(o.status)).length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -238,10 +198,7 @@ export default function EstadisticasScreen() {
           <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => {}} style={styles.iconButton}>
-            <Bell size={20} color={Colors.light.background} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.replace('/')} style={styles.iconButton}>
+          <TouchableOpacity onPress={handleLogout} style={styles.iconButton}>
             <LogOut size={20} color={Colors.light.background} />
           </TouchableOpacity>
         </View>
