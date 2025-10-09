@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
-  Animated,
-  useWindowDimensions,
   Platform,
-  Modal,
-  TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
@@ -25,17 +21,11 @@ import {
   Clock,
   Package,
   ArrowLeft,
-  Download,
   BarChart3,
-
   Bell,
   LogOut,
+  Target,
 } from 'lucide-react-native';
-import BranchToggle from '@/components/BranchToggle';
-import { exportDailyReport, formatCurrency, calculateGrowth } from '@/utils/exportReport';
-import Toast from 'react-native-toast-message';
-
-type Branch = 'Todas' | 'Norte' | 'Sur';
 
 interface Order {
   id: string;
@@ -51,63 +41,12 @@ interface Order {
   branch?: 'Norte' | 'Sur';
 }
 
-interface KPICardProps {
-  title: string;
-  value: string;
-  subtitle?: string;
-  icon: React.ReactNode;
-  color: string;
-  trend?: number;
-  animated?: boolean;
-}
-
-const KPICard = React.memo<KPICardProps>(({ title, value, subtitle, icon, color, trend, animated }) => {
-  const scaleAnim = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    if (animated) {
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [animated, scaleAnim]);
-
-  return (
-    <Animated.View
-      style={[
-        styles.kpiCard,
-        { borderLeftColor: color, borderLeftWidth: 4 },
-        { transform: animated ? [{ scale: scaleAnim }] : [] },
-      ]}
-    >
-      <View style={styles.kpiIconContainer}>
-        {icon}
-      </View>
-      <View style={styles.kpiContent}>
-        <Text style={styles.kpiValue}>{value}</Text>
-        <Text style={styles.kpiTitle}>{title}</Text>
-      </View>
-    </Animated.View>
-  );
-});
-KPICard.displayName = 'KPICard';
-
 export default function EstadisticasScreen() {
   const { currentUser } = useAdmin();
-  const { width } = useWindowDimensions();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBranch, setSelectedBranch] = useState<Branch>('Todas');
-  const [exporting, setExporting] = useState(false);
-  const [confirmVisible, setConfirmVisible] = useState(false);
-  const [dailyNote, setDailyNote] = useState('');
-  const [activeTab, setActiveTab] = useState<'pedidos' | 'estadisticas'>('estadisticas');
 
   const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com' || currentUser?.email === 'maria@deliempanada.com' || (currentUser as any)?.role === 'admin';
-  const isMobile = width <= 800;
 
   useEffect(() => {
     if (!currentUser) {
@@ -128,18 +67,9 @@ export default function EstadisticasScreen() {
       return;
     }
 
-    console.log('✅ Fetching orders for branch:', selectedBranch);
+    console.log('✅ Fetching orders');
 
-    let q;
-    if (selectedBranch === 'Todas') {
-      q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
-    } else {
-      q = query(
-        collection(db, 'pedidos'),
-        where('branch', '==', selectedBranch),
-        orderBy('createdAt', 'desc')
-      );
-    }
+    const q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(
       q,
@@ -151,7 +81,7 @@ export default function EstadisticasScreen() {
             ...doc.data(),
           } as Order);
         });
-        console.log(`📊 Loaded ${ordersData.length} orders for ${selectedBranch}`);
+        console.log(`📊 Loaded ${ordersData.length} orders`);
         setOrders(ordersData);
         setLoading(false);
       },
@@ -162,7 +92,7 @@ export default function EstadisticasScreen() {
     );
 
     return () => unsubscribe();
-  }, [currentUser, isAdmin, selectedBranch]);
+  }, [currentUser, isAdmin]);
 
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -215,17 +145,12 @@ export default function EstadisticasScreen() {
     const bestDay = Object.entries(dayCounts)
       .sort(([, a], [, b]) => b - a)[0];
 
-    const bestDayName = bestDay ? bestDay[0] : 'N/A';
-
     return {
       revenue,
       completedOrders: completedOrders.length,
       pendingOrders: pendingOrders.length,
       averageOrderValue,
       topProducts,
-      peakHourRange,
-      totalOrders: todayOrders.length,
-      bestDayName,
     };
   }, [orders]);
 
@@ -249,12 +174,25 @@ export default function EstadisticasScreen() {
     });
     const prevWeekRevenue = prevWeekOrders.reduce((sum, order) => sum + order.totalAmount, 0);
 
-    const weeklyGrowth = calculateGrowth(weekRevenue, prevWeekRevenue);
+    const weeklyGrowth = prevWeekRevenue > 0 ? ((weekRevenue - prevWeekRevenue) / prevWeekRevenue) * 100 : 0;
+
+    const dayCounts: { [day: string]: number } = {};
+    weekOrders.forEach((order) => {
+      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const dayName = orderDate.toLocaleDateString('es-ES', { weekday: 'long' });
+      dayCounts[dayName] = (dayCounts[dayName] || 0) + 1;
+    });
+
+    const bestDay = Object.entries(dayCounts)
+      .sort(([, a], [, b]) => b - a)[0];
+
+    const bestDayName = bestDay ? bestDay[0] : 'N/A';
 
     return {
       revenue: weekRevenue,
       growth: weeklyGrowth,
       ordersCount: weekOrders.length,
+      bestDayName,
     };
   }, [orders]);
 
@@ -277,47 +215,19 @@ export default function EstadisticasScreen() {
     });
     const prevMonthRevenue = prevMonthOrders.reduce((sum, order) => sum + order.totalAmount, 0);
 
-    const monthlyGrowth = calculateGrowth(monthRevenue, prevMonthRevenue);
+    const monthlyGrowth = prevMonthRevenue > 0 ? ((monthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 : 0;
 
     return {
       revenue: monthRevenue,
       growth: monthlyGrowth,
       ordersCount: monthOrders.length,
+      goalPercentage: 0.8,
     };
   }, [orders]);
 
-  const handleExport = useCallback(async (note = '') => {
-    setExporting(true);
-    try {
-      const result = await exportDailyReport(orders, selectedBranch, note);
-      if (result.success) {
-        Toast.show({
-          type: 'success',
-          text1: 'Informe generado con éxito',
-          text2: 'El reporte fue exportado correctamente.',
-          position: 'bottom',
-        });
-      } else {
-        throw new Error('Export failed');
-      }
-    } catch (error) {
-      console.error('❌ Error exporting report:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error al generar el informe',
-        text2: 'Por favor intenta de nuevo.',
-        position: 'bottom',
-      });
-    } finally {
-      setExporting(false);
-    }
-  }, [orders, selectedBranch]);
-
-  const handleConfirmExport = useCallback(() => {
-    setConfirmVisible(false);
-    handleExport(dailyNote);
-    setDailyNote('');
-  }, [handleExport, dailyNote]);
+  const formatCurrency = (amount: number) => {
+    return `$ ${amount.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  };
 
   if (!currentUser || !isAdmin) {
     return null;
@@ -356,56 +266,28 @@ export default function EstadisticasScreen() {
 
       <View style={styles.tabBar}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'pedidos' && styles.tabActive]}
-          onPress={() => {
-            setActiveTab('pedidos');
-            router.push('/pedidos');
-          }}
+          style={styles.tab}
+          onPress={() => router.push('/pedidos')}
         >
-          <Package size={18} color={activeTab === 'pedidos' ? Colors.light.primary : Colors.light.textLight} />
-          <Text style={[styles.tabText, activeTab === 'pedidos' && styles.tabTextActive]}>
-            Pedidos ({orders.length})
+          <Package size={18} color={Colors.light.textLight} />
+          <Text style={styles.tabText}>
+            Pedidos ({orders.filter(o => ['pending', 'paid', 'preparing', 'out_for_delivery'].includes(o.status)).length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'estadisticas' && styles.tabActive]}
-          onPress={() => setActiveTab('estadisticas')}
+          style={[styles.tab, styles.tabActive]}
+          onPress={() => {}}
         >
-          <BarChart3 size={18} color={activeTab === 'estadisticas' ? Colors.light.primary : Colors.light.textLight} />
-          <Text style={[styles.tabText, activeTab === 'estadisticas' && styles.tabTextActive]}>
+          <BarChart3 size={18} color={Colors.light.primary} />
+          <Text style={[styles.tabText, styles.tabTextActive]}>
             Estadísticas
           </Text>
         </TouchableOpacity>
       </View>
 
-      {activeTab === 'estadisticas' && (
-        <View style={styles.controlsBar}>
-          <BranchToggle
-            selectedBranch={selectedBranch}
-            onBranchChange={setSelectedBranch}
-            disabled={false}
-          />
-          <TouchableOpacity
-            style={[styles.exportButton, exporting && styles.exportButtonDisabled]}
-            onPress={() => setConfirmVisible(true)}
-            disabled={exporting}
-          >
-            {exporting ? (
-              <ActivityIndicator size="small" color={Colors.light.primary} />
-            ) : (
-              <>
-                <Download size={18} color={Colors.light.primary} />
-                <Text style={styles.exportButtonText}>Generar Informe Diario</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {activeTab === 'estadisticas' && (
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-          <Text style={styles.sectionTitle}>📊 Estadísticas de Hoy</Text>
-        <View style={[styles.kpiGrid, isMobile && styles.kpiGridMobile]}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <Text style={styles.sectionTitle}>📊 Estadísticas de Hoy</Text>
+        <View style={styles.kpiGrid}>
           <View style={[styles.kpiCardLarge, { borderLeftColor: Colors.light.success }]}>
             <View style={styles.kpiIconContainer}>
               <DollarSign size={24} color={Colors.light.success} />
@@ -471,7 +353,7 @@ export default function EstadisticasScreen() {
               <Package size={24} color={Colors.light.warning} />
             </View>
             <View style={styles.summaryTextContainer}>
-              <Text style={styles.summaryValue}>{todayStats.bestDayName}</Text>
+              <Text style={styles.summaryValue}>{weeklyStats.bestDayName}</Text>
               <Text style={styles.summaryLabel}>Mejor Día</Text>
             </View>
           </View>
@@ -501,10 +383,10 @@ export default function EstadisticasScreen() {
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryIconContainer}>
-              <Package size={24} color="#2196F3" />
+              <Target size={24} color="#2196F3" />
             </View>
             <View style={styles.summaryTextContainer}>
-              <Text style={styles.summaryValue}>0.8%</Text>
+              <Text style={styles.summaryValue}>{monthlyStats.goalPercentage}%</Text>
               <Text style={styles.summaryLabel}>Meta del Mes</Text>
             </View>
           </View>
@@ -530,51 +412,7 @@ export default function EstadisticasScreen() {
             <Text style={styles.emptyText}>No hay datos de productos hoy</Text>
           )}
         </View>
-        </ScrollView>
-      )}
-
-      <Modal
-        transparent
-        visible={confirmVisible}
-        animationType="fade"
-        onRequestClose={() => setConfirmVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              ¿Deseas generar el informe de hoy?
-            </Text>
-
-            <TextInput
-              placeholder="Notas del Día (opcional)"
-              placeholderTextColor="#888"
-              value={dailyNote}
-              onChangeText={setDailyNote}
-              multiline
-              numberOfLines={3}
-              style={styles.modalInput}
-            />
-
-            <Text style={styles.modalMessage}>
-              Se generará el reporte de ventas del día y podrás incluir una nota personalizada.
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                onPress={() => setConfirmVisible(false)}
-                style={styles.modalButtonCancel}
-              >
-                <Text style={styles.modalButtonCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleConfirmExport}
-                style={styles.modalButtonConfirm}
-              >
-                <Text style={styles.modalButtonConfirmText}>Generar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -654,33 +492,7 @@ const styles = StyleSheet.create({
     color: Colors.light.primary,
     fontWeight: '700',
   },
-  controlsBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.light.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
-  exportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD700',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 6,
-  },
-  exportButtonDisabled: {
-    opacity: 0.6,
-  },
-  exportButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#CC0000',
-  },
+
   content: {
     flex: 1,
   },
@@ -698,9 +510,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-  },
-  kpiGridMobile: {
-    flexDirection: 'column',
   },
   kpiCard: {
     flex: 1,
@@ -939,67 +748,5 @@ const styles = StyleSheet.create({
     color: Colors.light.textLight,
     textAlign: 'center',
     fontStyle: 'italic',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#CC0000',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  modalMessage: {
-    fontSize: 13,
-    color: '#555',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: '#FFD700',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 16,
-    textAlignVertical: 'top',
-    fontSize: 14,
-    color: '#333',
-    minHeight: 80,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-  },
-  modalButtonCancel: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#ccc',
-  },
-  modalButtonCancelText: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  modalButtonConfirm: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#FFD700',
-  },
-  modalButtonConfirmText: {
-    color: '#CC0000',
-    fontWeight: '700',
   },
 });
