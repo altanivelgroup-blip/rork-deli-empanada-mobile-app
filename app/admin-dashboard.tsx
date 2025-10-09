@@ -470,19 +470,19 @@ export default function AdminDashboardScreen() {
         </View>
       </View>
 
-      {/* Tab Navigation - Only show for managers */}
-      {isManager && (
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, selectedTab === 'orders' && styles.activeTab]}
-            onPress={() => setSelectedTab('orders')}
-          >
-            <Package size={20} color={selectedTab === 'orders' ? '#CC0000' : '#666'} />
-            <Text style={[styles.tabText, selectedTab === 'orders' && styles.activeTabText]}>
-              Pedidos ({orders.length})
-            </Text>
-          </TouchableOpacity>
-          
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'orders' && styles.activeTab]}
+          onPress={() => setSelectedTab('orders')}
+        >
+          <Package size={20} color={selectedTab === 'orders' ? '#CC0000' : '#666'} />
+          <Text style={[styles.tabText, selectedTab === 'orders' && styles.activeTabText]}>
+            Pedidos ({orders.length})
+          </Text>
+        </TouchableOpacity>
+        
+        {isManager && (
           <TouchableOpacity
             style={[styles.tab, selectedTab === 'analytics' && styles.activeTab]}
             onPress={() => setSelectedTab('analytics')}
@@ -492,8 +492,8 @@ export default function AdminDashboardScreen() {
               Estadísticas
             </Text>
           </TouchableOpacity>
-        </View>
-      )}
+        )}
+      </View>
 
       {/* Content */}
       {selectedTab === 'orders' ? (
