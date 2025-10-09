@@ -188,7 +188,7 @@ export default function PedidosScreen() {
             Pedidos ({orders.length})
           </Text>
         </TouchableOpacity>
-        {(isManager || hasPermission('viewAnalytics')) && (
+        {isAdmin && (
           <TouchableOpacity 
             style={styles.tab}
             onPress={() => router.push('/estadisticas')}
