@@ -16,7 +16,7 @@ import { collection, onSnapshot, updateDoc, doc, query, orderBy, where } from 'f
 import { db } from '@/config/firebase';
 import { useAdmin } from '@/providers/AdminProvider';
 import Colors from '@/constants/colors';
-import { ArrowLeft, Package, Bell, LogOut } from 'lucide-react-native';
+import { ArrowLeft, Package, Bell, LogOut, BarChart3 } from 'lucide-react-native';
 
 type OrderStatus = 'pending' | 'paid' | 'preparing' | 'out_for_delivery' | 'delivered';
 
@@ -430,6 +430,17 @@ export default function PedidosScreen() {
             Pedidos ({orders.length})
           </Text>
         </TouchableOpacity>
+        {isAdmin && (
+          <TouchableOpacity
+            style={styles.tab}
+            onPress={() => router.push('/estadisticas')}
+          >
+            <BarChart3 size={18} color={Colors.light.textLight} />
+            <Text style={styles.tabText}>
+              Estadísticas
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.summaryCards}>
