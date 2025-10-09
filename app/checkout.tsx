@@ -14,11 +14,13 @@ import {
 import { router } from 'expo-router';
 import { MapPin, Phone, User, CreditCard, Truck, Store } from 'lucide-react-native';
 import { useCart } from '@/providers/CartProvider';
+import WompiCheckout from '@/components/WompiCheckout';
 
 export default function CheckoutScreen() {
   const { getTotalPrice, clearCart } = useCart();
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
+  const [showWompi, setShowWompi] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -37,7 +39,18 @@ export default function CheckoutScreen() {
       return;
     }
 
-    // Process order
+    if (paymentMethod === 'card') {
+      setShowWompi(true);
+    } else {
+      clearCart();
+      router.replace('/confirmation');
+    }
+  };
+
+  const handlePaymentSuccess = (transactionId: string) => {
+    console.log('✅ Payment successful:', transactionId);
+    Alert.alert('Pago Exitoso', `Transacción #${transactionId}\n\nTu pedido ha sido confirmado.`);
+    setShowWompi(false);
     clearCart();
     router.replace('/confirmation');
   };
@@ -194,6 +207,14 @@ export default function CheckoutScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <WompiCheckout
+        visible={showWompi}
+        amount={total}
+        reference={`ORDER-${Date.now()}`}
+        onClose={() => setShowWompi(false)}
+        onSuccess={handlePaymentSuccess}
+      />
     </SafeAreaView>
   );
 }
