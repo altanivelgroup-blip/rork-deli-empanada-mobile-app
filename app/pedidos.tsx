@@ -443,6 +443,15 @@ export default function PedidosScreen() {
         </View>
       )}
 
+      {isEmployee && (
+        <View style={styles.employeeHeader}>
+          <Package size={18} color={Colors.light.primary} />
+          <Text style={styles.employeeHeaderText}>
+            Pedidos ({orders.length})
+          </Text>
+        </View>
+      )}
+
       <View style={styles.summaryCards}>
         <View style={[styles.summaryCard, { backgroundColor: '#FFF5F5' }]}>
           <Text style={[styles.summaryNumber, { color: Colors.light.primary }]}>{newOrders.length}</Text>
@@ -918,5 +927,20 @@ const styles = StyleSheet.create({
     color: Colors.light.textLight,
     marginTop: 8,
     textAlign: 'center',
+  },
+  employeeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    backgroundColor: Colors.light.background,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.light.primary,
+    gap: 8,
+  },
+  employeeHeaderText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.primary,
   },
 });
