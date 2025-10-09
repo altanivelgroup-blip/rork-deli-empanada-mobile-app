@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,11 +15,11 @@ import {
   PanResponder,
 } from 'react-native';
 import { router } from 'expo-router';
-import { collection, onSnapshot, updateDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, updateDoc, doc, query, orderBy, where } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useAdmin } from '@/providers/AdminProvider';
 import Colors from '@/constants/colors';
-import { Clock, MapPin, Phone, User, Package, ChevronDown, ArrowLeft } from 'lucide-react-native';
+import { Clock, MapPin, Phone, User, Package, ChevronDown, ArrowLeft, Store } from 'lucide-react-native';
 
 type OrderStatus = 'pending' | 'paid' | 'preparing' | 'out_for_delivery' | 'delivered';
 
@@ -45,6 +45,7 @@ interface Order {
   transactionId: string;
   status: OrderStatus;
   createdAt: any;
+  branch?: 'Norte' | 'Sur';
 }
 
 const STATUS_CONFIG = {
@@ -65,12 +66,18 @@ export default function PedidosScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<OrderStatus | 'all'>('all');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [previousOrderCount, setPreviousOrderCount] = useState(0);
+  const newOrderAnimation = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   
   const isMobile = width <= 800;
 
   const isAdmin = currentUser?.email === 'maria@deliempanada.com';
-  const isEmployee = currentUser?.email === 'employee1@deliempanada.com' || 
-                     currentUser?.email === 'employee2@deliempanada.com';
+  const isEmployee1 = currentUser?.email === 'employee1@deliempanada.com';
+  const isEmployee2 = currentUser?.email === 'employee2@deliempanada.com';
+  const isEmployee = isEmployee1 || isEmployee2;
+  
+  const userBranch = isEmployee1 ? 'Norte' : isEmployee2 ? 'Sur' : null;
 
   useEffect(() => {
     if (!currentUser) {
@@ -84,7 +91,18 @@ export default function PedidosScreen() {
       return;
     }
 
-    const q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
+    let q;
+    if (isAdmin) {
+      q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
+    } else if (userBranch) {
+      q = query(
+        collection(db, 'pedidos'),
+        where('branch', '==', userBranch),
+        orderBy('createdAt', 'desc')
+      );
+    } else {
+      q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
+    }
     
     const unsubscribe = onSnapshot(
       q,
@@ -96,6 +114,18 @@ export default function PedidosScreen() {
             ...doc.data(),
           } as Order);
         });
+        
+        if (ordersData.length > previousOrderCount && previousOrderCount > 0) {
+          console.log('🔔 ¡Nuevo pedido recibido!');
+          playNewOrderAnimation();
+          if (Platform.OS !== 'web') {
+            Alert.alert('🎉 Nuevo Pedido', '¡Ha llegado un nuevo pedido!', [
+              { text: 'Ver', onPress: () => {} },
+            ]);
+          }
+        }
+        
+        setPreviousOrderCount(ordersData.length);
         setOrders(ordersData);
         setLoading(false);
         setRefreshing(false);
@@ -109,7 +139,22 @@ export default function PedidosScreen() {
     );
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, isAdmin, userBranch, previousOrderCount]);
+
+  const playNewOrderAnimation = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(newOrderAnimation, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(newOrderAnimation, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [newOrderAnimation]);
 
   const handleStatusUpdate = useCallback(async (orderId: string, newStatus: OrderStatus) => {
     if (!db) return;
@@ -119,11 +164,24 @@ export default function PedidosScreen() {
         status: newStatus,
       });
       console.log(`✅ Order ${orderId} updated to ${newStatus}`);
+      
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } catch (error) {
       console.error('Error updating order:', error);
       Alert.alert('Error', 'No se pudo actualizar el estado del pedido');
     }
-  }, []);
+  }, [fadeAnim]);
 
   const toggleOrderExpansion = useCallback((orderId: string) => {
     setExpandedOrders((prev) => {
@@ -194,7 +252,16 @@ export default function PedidosScreen() {
     const prevStatus = currentStatusIndex > 0 ? FILTER_OPTIONS[currentStatusIndex - 1] : null;
 
     const pan = useMemo(() => new Animated.ValueXY(), []);
+    const cardFadeIn = useMemo(() => new Animated.Value(0), []);
     const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+    
+    useEffect(() => {
+      Animated.timing(cardFadeIn, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+    }, [cardFadeIn]);
 
     const panResponder = useMemo(
       () =>
@@ -246,6 +313,7 @@ export default function PedidosScreen() {
           {
             transform: [{ translateX: pan.x }],
             backgroundColor,
+            opacity: cardFadeIn,
           },
         ]}
         {...panResponder.panHandlers}
@@ -274,6 +342,12 @@ export default function PedidosScreen() {
               <Text style={styles.statusEmoji}>{statusConfig.emoji}</Text>
               <Text style={styles.statusText}>{statusConfig.label}</Text>
             </View>
+            {order.branch && (
+              <View style={styles.branchBadge}>
+                <Store size={12} color={Colors.light.accent} />
+                <Text style={styles.branchText}>{order.branch}</Text>
+              </View>
+            )}
             <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
           </View>
           <ChevronDown
@@ -371,6 +445,12 @@ export default function PedidosScreen() {
               <Text style={styles.statusEmoji}>{statusConfig.emoji}</Text>
               <Text style={styles.statusText}>{statusConfig.label}</Text>
             </View>
+            {order.branch && (
+              <View style={styles.branchBadge}>
+                <Store size={12} color={Colors.light.accent} />
+                <Text style={styles.branchText}>{order.branch}</Text>
+              </View>
+            )}
             <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
           </View>
           <ChevronDown
@@ -460,17 +540,35 @@ export default function PedidosScreen() {
     );
   }
 
+  const headerScale = newOrderAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.1],
+  });
+
+  const headerBackgroundColor = newOrderAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [Colors.light.primary, Colors.light.accent],
+  });
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { backgroundColor: headerBackgroundColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={Colors.light.background} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestión de Pedidos</Text>
-        <View style={styles.headerRight}>
-          <Package size={24} color={Colors.light.background} />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Gestión de Pedidos</Text>
+          {userBranch && (
+            <View style={styles.headerBranchBadge}>
+              <Store size={14} color={Colors.light.background} />
+              <Text style={styles.headerBranchText}>{userBranch}</Text>
+            </View>
+          )}
         </View>
-      </View>
+        <Animated.View style={[styles.headerRight, { transform: [{ scale: headerScale }] }]}>
+          <Package size={24} color={Colors.light.background} />
+        </Animated.View>
+      </Animated.View>
 
       <ScrollView
         horizontal
@@ -583,6 +681,24 @@ const styles = StyleSheet.create({
     width: 32,
     alignItems: 'flex-end',
   },
+  headerCenter: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerBranchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    gap: 4,
+  },
+  headerBranchText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.light.background,
+  },
   filterContainer: {
     backgroundColor: Colors.light.background,
     borderBottomWidth: 1,
@@ -670,6 +786,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.light.textLight,
+  },
+  branchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: Colors.light.surface,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: Colors.light.accent,
+  },
+  branchText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.light.accent,
   },
   orderInfo: {
     gap: 8,
