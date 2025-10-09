@@ -58,6 +58,10 @@ export default function PedidosScreen() {
   
   const userBranch = isEmployee1 ? 'Norte' : isEmployee2 ? 'Sur' : null;
 
+  console.log('Current user:', currentUser?.email);
+  console.log('Is employee:', isEmployee);
+  console.log('User branch:', userBranch);
+
   useEffect(() => {
     if (!currentUser) {
       router.replace('/admin-login');
@@ -184,13 +188,15 @@ export default function PedidosScreen() {
             Pedidos ({orders.length})
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.tab}
-          onPress={() => router.push('/estadisticas')}
-        >
-          <BarChart3 size={18} color={Colors.light.textLight} />
-          <Text style={styles.tabText}>Estadísticas</Text>
-        </TouchableOpacity>
+        {isAdmin && (
+          <TouchableOpacity 
+            style={styles.tab}
+            onPress={() => router.push('/estadisticas')}
+          >
+            <BarChart3 size={18} color={Colors.light.textLight} />
+            <Text style={styles.tabText}>Estadísticas</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.summaryCards}>
