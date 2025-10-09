@@ -11,17 +11,28 @@ import {
   Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { useAdmin } from '@/providers/AdminProvider';
+import { router } from 'expo-router';
 import { Lock, User, Eye, EyeOff } from 'lucide-react-native';
+
+const AsyncStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(key);
+    }
+    return null;
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(key, value);
+    }
+  },
+};
 
 export default function AdminLoginScreen() {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { login } = useAdmin();
-
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -31,15 +42,38 @@ export default function AdminLoginScreen() {
 
     setIsLoading(true);
     try {
-      const result = await login(email.trim(), password);
-      if (result.success && result.user) {
-        console.log('Login successful:', result.user.name, result.user.role);
-        // Stay in admin route, let AdminScreen handle the routing
+      const emailLower = email.trim().toLowerCase();
+      
+      if (emailLower === 'maria@deliempanada.com' && password === 'admin123') {
+        await AsyncStorage.setItem('userRole', 'admin');
+        await AsyncStorage.setItem('userEmail', emailLower);
+        console.log('✅ Owner logged in');
+        router.replace('/estadisticas');
+      } else if (emailLower === 'employee1' || emailLower === 'employee1@deliempanada.com') {
+        if (password === 'work123') {
+          await AsyncStorage.setItem('userRole', 'employee');
+          await AsyncStorage.setItem('userEmail', 'employee1@deliempanada.com');
+          await AsyncStorage.setItem('userBranch', 'Norte');
+          console.log('✅ Employee Norte logged in');
+          router.replace('/pedidos?branch=Norte');
+        } else {
+          Alert.alert('Error', 'Contraseña incorrecta');
+        }
+      } else if (emailLower === 'employee2' || emailLower === 'employee2@deliempanada.com') {
+        if (password === 'work123') {
+          await AsyncStorage.setItem('userRole', 'employee');
+          await AsyncStorage.setItem('userEmail', 'employee2@deliempanada.com');
+          await AsyncStorage.setItem('userBranch', 'Sur');
+          console.log('✅ Employee Sur logged in');
+          router.replace('/pedidos?branch=Sur');
+        } else {
+          Alert.alert('Error', 'Contraseña incorrecta');
+        }
       } else {
-        Alert.alert('Error de Acceso', result.error || 'Credenciales inválidas');
+        Alert.alert('Error', 'Credenciales inválidas');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Error during login:', error);
       Alert.alert('Error', 'Error al iniciar sesión');
     } finally {
       setIsLoading(false);
