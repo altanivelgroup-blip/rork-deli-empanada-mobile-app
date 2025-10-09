@@ -27,7 +27,7 @@ import {
   ArrowLeft,
   Download,
   BarChart3,
-  TrendingDown,
+
   Bell,
   LogOut,
 } from 'lucide-react-native';
@@ -106,7 +106,7 @@ export default function EstadisticasScreen() {
   const [dailyNote, setDailyNote] = useState('');
   const [activeTab, setActiveTab] = useState<'pedidos' | 'estadisticas'>('estadisticas');
 
-  const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com' || currentUser?.email === 'maria@deliempanada.com';
+  const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com' || currentUser?.email === 'maria@deliempanada.com' || (currentUser as any)?.role === 'admin';
   const isMobile = width <= 800;
 
   useEffect(() => {
@@ -406,50 +406,58 @@ export default function EstadisticasScreen() {
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
           <Text style={styles.sectionTitle}>📊 Estadísticas de Hoy</Text>
         <View style={[styles.kpiGrid, isMobile && styles.kpiGridMobile]}>
-          <KPICard
-            title="Ingresos Hoy"
-            value={formatCurrency(todayStats.revenue)}
-            icon={<DollarSign size={20} color={Colors.light.primary} />}
-            color={Colors.light.success}
-            animated={true}
-          />
-          <KPICard
-            title="Pedidos Completados"
-            value={todayStats.completedOrders.toString()}
-            icon={<CheckCircle size={20} color="#2196F3" />}
-            color="#2196F3"
-            animated={true}
-          />
-          <KPICard
-            title="Pedidos Pendientes"
-            value={todayStats.pendingOrders.toString()}
-            icon={<Clock size={20} color={Colors.light.warning} />}
-            color={Colors.light.warning}
-            animated={true}
-          />
-          <KPICard
-            title="Valor Promedio"
-            value={formatCurrency(todayStats.averageOrderValue)}
-            icon={<TrendingUp size={20} color="#9C27B0" />}
-            color="#9C27B0"
-            animated={true}
-          />
+          <View style={[styles.kpiCardLarge, { borderLeftColor: Colors.light.success }]}>
+            <View style={styles.kpiIconContainer}>
+              <DollarSign size={24} color={Colors.light.success} />
+            </View>
+            <View style={styles.kpiContent}>
+              <Text style={styles.kpiValue}>{formatCurrency(todayStats.revenue)}</Text>
+              <Text style={styles.kpiTitle}>Ingresos Hoy</Text>
+            </View>
+          </View>
+          <View style={[styles.kpiCardLarge, { borderLeftColor: '#2196F3' }]}>
+            <View style={styles.kpiIconContainer}>
+              <CheckCircle size={24} color="#2196F3" />
+            </View>
+            <View style={styles.kpiContent}>
+              <Text style={styles.kpiValue}>{todayStats.completedOrders}</Text>
+              <Text style={styles.kpiTitle}>Pedidos Completados</Text>
+            </View>
+          </View>
+          <View style={[styles.kpiCardLarge, { borderLeftColor: Colors.light.warning }]}>
+            <View style={styles.kpiIconContainer}>
+              <Clock size={24} color={Colors.light.warning} />
+            </View>
+            <View style={styles.kpiContent}>
+              <Text style={styles.kpiValue}>{todayStats.pendingOrders}</Text>
+              <Text style={styles.kpiTitle}>Pedidos Pendientes</Text>
+            </View>
+          </View>
+          <View style={[styles.kpiCardLarge, { borderLeftColor: '#9C27B0' }]}>
+            <View style={styles.kpiIconContainer}>
+              <TrendingUp size={24} color="#9C27B0" />
+            </View>
+            <View style={styles.kpiContent}>
+              <Text style={styles.kpiValue}>{formatCurrency(todayStats.averageOrderValue)}</Text>
+              <Text style={styles.kpiTitle}>Valor Promedio</Text>
+            </View>
+          </View>
         </View>
 
         <Text style={styles.sectionTitle}>📈 Resumen Semanal</Text>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryIconContainer}>
-              <BarChart3 size={20} color={Colors.light.success} />
+              <BarChart3 size={24} color={Colors.light.success} />
             </View>
             <View style={styles.summaryTextContainer}>
               <Text style={styles.summaryValue}>{formatCurrency(weeklyStats.revenue)}</Text>
-              <Text style={styles.summaryLabel}>Ingresos Semanal</Text>
+              <Text style={styles.summaryLabel}>Ingresos Semana</Text>
             </View>
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryIconContainer}>
-              <TrendingUp size={20} color={Colors.light.success} />
+              <TrendingUp size={24} color={Colors.light.success} />
             </View>
             <View style={styles.summaryTextContainer}>
               <Text style={[styles.summaryValue, { color: Colors.light.success }]}>
@@ -460,7 +468,7 @@ export default function EstadisticasScreen() {
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryIconContainer}>
-              <Package size={20} color={Colors.light.warning} />
+              <Package size={24} color={Colors.light.warning} />
             </View>
             <View style={styles.summaryTextContainer}>
               <Text style={styles.summaryValue}>{todayStats.bestDayName}</Text>
@@ -473,7 +481,7 @@ export default function EstadisticasScreen() {
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryIconContainer}>
-              <DollarSign size={20} color={Colors.light.success} />
+              <DollarSign size={24} color={Colors.light.success} />
             </View>
             <View style={styles.summaryTextContainer}>
               <Text style={styles.summaryValue}>{formatCurrency(monthlyStats.revenue)}</Text>
@@ -482,7 +490,7 @@ export default function EstadisticasScreen() {
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryIconContainer}>
-              <TrendingUp size={20} color={Colors.light.success} />
+              <TrendingUp size={24} color={Colors.light.success} />
             </View>
             <View style={styles.summaryTextContainer}>
               <Text style={[styles.summaryValue, { color: Colors.light.success }]}>
@@ -493,49 +501,31 @@ export default function EstadisticasScreen() {
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryIconContainer}>
-              <Package size={20} color="#2196F3" />
+              <Package size={24} color="#2196F3" />
             </View>
             <View style={styles.summaryTextContainer}>
-              <Text style={styles.summaryValue}>{monthlyStats.growth.toFixed(1)}%</Text>
+              <Text style={styles.summaryValue}>0.8%</Text>
               <Text style={styles.summaryLabel}>Meta del Mes</Text>
             </View>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>🏆 Top Productos del Día</Text>
+        <Text style={styles.sectionTitle}>🏆 Productos Más Vendidos Hoy</Text>
         <View style={styles.topProductsCard}>
           {todayStats.topProducts.length > 0 ? (
-            todayStats.topProducts.map((product, index) => {
-              const maxQuantity = todayStats.topProducts[0].quantity;
-              const percentage = (product.quantity / maxQuantity) * 100;
-              return (
-                <View key={product.name} style={styles.productRow}>
-                  <View style={styles.productRank}>
-                    <Text style={styles.productRankText}>#{index + 1}</Text>
-                  </View>
-                  <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{product.name}</Text>
-                    <View style={styles.progressBarContainer}>
-                      <View
-                        style={[
-                          styles.progressBar,
-                          {
-                            width: `${percentage}%`,
-                            backgroundColor:
-                              index === 0
-                                ? Colors.light.accent
-                                : index === 1
-                                ? Colors.light.secondary
-                                : Colors.light.primary,
-                          },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                  <Text style={styles.productQuantity}>{product.quantity}</Text>
+            todayStats.topProducts.map((product, index) => (
+              <View key={product.name} style={styles.productRow}>
+                <View style={styles.productRank}>
+                  <Text style={styles.productRankText}>#{index + 1}</Text>
                 </View>
-              );
-            })
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <Text style={styles.productStats}>
+                    {product.quantity} vendidos • {formatCurrency((product.quantity * 3500))}
+                  </Text>
+                </View>
+              </View>
+            ))
           ) : (
             <Text style={styles.emptyText}>No hay datos de productos hoy</Text>
           )}
@@ -736,6 +726,31 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  kpiCardLarge: {
+    flex: 1,
+    minWidth: 200,
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    borderLeftWidth: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      },
+    }),
+  },
   kpiIconContainer: {
     width: 40,
     height: 40,
@@ -892,10 +907,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productName: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: Colors.light.text,
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  productStats: {
+    fontSize: 12,
+    color: Colors.light.textLight,
+    fontWeight: '500',
   },
   progressBarContainer: {
     height: 8,
