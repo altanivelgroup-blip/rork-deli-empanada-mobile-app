@@ -8,10 +8,14 @@ import {
   Image,
   Modal,
   Pressable,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ShoppingBag, Truck, Crown, Store, X } from 'lucide-react-native';
+import { ShoppingBag, Truck, Crown, Store, X, User, Lock } from 'lucide-react-native';
 
 const AsyncStorage = {
   getItem: async (key: string): Promise<string | null> => {
@@ -41,6 +45,9 @@ export default function HomeScreen() {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [loginMode, setLoginMode] = useState<'owner' | 'employee' | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     Animated.parallel([
@@ -72,27 +79,62 @@ export default function HomeScreen() {
     }
   };
 
-  const handleRoleSelection = async (context: UserContext) => {
-    try {
-      await AsyncStorage.setItem('userRole', context.role);
-      await AsyncStorage.setItem('userEmail', context.email);
-      if (context.branch) {
-        await AsyncStorage.setItem('userBranch', context.branch);
-      }
-
-      console.log('✅ User context saved:', context);
-      setShowAdminModal(false);
-
-      setTimeout(() => {
-        if (context.role === 'admin') {
-          router.push('/estadisticas');
-        } else {
-          router.push(`/pedidos?branch=${context.branch}`);
-        }
-      }, 200);
-    } catch (error) {
-      console.error('❌ Error saving user context:', error);
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Por favor ingresa email y contraseña');
+      return;
     }
+
+    try {
+      if (loginMode === 'owner') {
+        if (email === 'maria@deliempanada.com' && password === 'admin123') {
+          await AsyncStorage.setItem('userRole', 'admin');
+          await AsyncStorage.setItem('userEmail', email);
+          console.log('✅ Owner logged in');
+          setShowAdminModal(false);
+          setEmail('');
+          setPassword('');
+          setLoginMode(null);
+          setTimeout(() => router.push('/estadisticas'), 200);
+        } else {
+          Alert.alert('Error', 'Credenciales de propietario inválidas');
+        }
+      } else if (loginMode === 'employee') {
+        if (email === 'employee1@deliempanada.com' && password === 'work123') {
+          await AsyncStorage.setItem('userRole', 'employee');
+          await AsyncStorage.setItem('userEmail', email);
+          await AsyncStorage.setItem('userBranch', 'Norte');
+          console.log('✅ Employee Norte logged in');
+          setShowAdminModal(false);
+          setEmail('');
+          setPassword('');
+          setLoginMode(null);
+          setTimeout(() => router.push('/pedidos?branch=Norte'), 200);
+        } else if (email === 'employee2@deliempanada.com' && password === 'work123') {
+          await AsyncStorage.setItem('userRole', 'employee');
+          await AsyncStorage.setItem('userEmail', email);
+          await AsyncStorage.setItem('userBranch', 'Sur');
+          console.log('✅ Employee Sur logged in');
+          setShowAdminModal(false);
+          setEmail('');
+          setPassword('');
+          setLoginMode(null);
+          setTimeout(() => router.push('/pedidos?branch=Sur'), 200);
+        } else {
+          Alert.alert('Error', 'Credenciales de empleado inválidas');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error during login:', error);
+      Alert.alert('Error', 'Error al iniciar sesión');
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowAdminModal(false);
+    setLoginMode(null);
+    setEmail('');
+    setPassword('');
   };
 
   return (
@@ -161,86 +203,136 @@ export default function HomeScreen() {
         transparent
         visible={showAdminModal}
         animationType="fade"
-        onRequestClose={() => setShowAdminModal(false)}
+        onRequestClose={handleModalClose}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={() => setShowAdminModal(false)}
+              onPress={handleModalClose}
             >
               <X size={24} color="#CC0000" />
             </TouchableOpacity>
 
-            <Text style={styles.modalTitle}>Panel de Gerencia</Text>
-            <Text style={styles.modalSubtitle}>Selecciona tu rol</Text>
+            {!loginMode ? (
+              <>
+                <Text style={styles.modalTitle}>Panel de Gerencia</Text>
+                <Text style={styles.modalSubtitle}>Selecciona tu rol</Text>
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() =>
-                  handleRoleSelection({
-                    role: 'admin',
-                    email: 'maria@deliempanada.com',
-                    branch: null,
-                  })
-                }
-              >
-                <LinearGradient
-                  colors={['#FFD700', '#FFA500']}
-                  style={styles.modalButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Crown size={24} color="#CC0000" />
-                  <Text style={styles.modalButtonTextAdmin}>Admin (Maria)</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setLoginMode('owner')}
+                  >
+                    <LinearGradient
+                      colors={['#FFD700', '#FFA500']}
+                      style={styles.modalButton}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      <Crown size={28} color="#CC0000" />
+                      <Text style={styles.modalButtonTextAdmin}>OWNER</Text>
+                      <Text style={styles.modalButtonSubtext}>Propietario / Gerente</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() =>
-                  handleRoleSelection({
-                    role: 'employee',
-                    email: 'employee1@deliempanada.com',
-                    branch: 'Norte',
-                  })
-                }
-              >
-                <LinearGradient
-                  colors={['#FF8C00', '#FF6B00']}
-                  style={styles.modalButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Store size={24} color="#FFFFFF" />
-                  <Text style={styles.modalButtonTextEmployee}>Empleado Norte</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setLoginMode('employee')}
+                  >
+                    <LinearGradient
+                      colors={['#FF8C00', '#CC0000']}
+                      style={styles.modalButton}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      <Store size={28} color="#FFFFFF" />
+                      <Text style={styles.modalButtonTextEmployee}>EMPLOYEE</Text>
+                      <Text style={styles.modalButtonSubtextWhite}>Empleado de Sucursal</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalTitle}>
+                  {loginMode === 'owner' ? '👑 OWNER LOGIN' : '👨‍🍳 EMPLOYEE LOGIN'}
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  {loginMode === 'owner'
+                    ? 'Ingresa tus credenciales de propietario'
+                    : 'Ingresa tus credenciales de empleado'}
+                </Text>
 
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() =>
-                  handleRoleSelection({
-                    role: 'employee',
-                    email: 'employee2@deliempanada.com',
-                    branch: 'Sur',
-                  })
-                }
-              >
-                <LinearGradient
-                  colors={['#CC0000', '#990000']}
-                  style={styles.modalButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Store size={24} color="#FFFFFF" />
-                  <Text style={styles.modalButtonTextEmployee}>Empleado Sur</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.loginForm}>
+                  <View style={styles.inputContainer}>
+                    <User size={20} color="#666" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Email"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Lock size={20} color="#666" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Contraseña"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={handleLogin}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => {
+                      setLoginMode(null);
+                      setEmail('');
+                      setPassword('');
+                    }}
+                  >
+                    <Text style={styles.backButtonText}>← Volver</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.credentialsHint}>
+                    <Text style={styles.hintTitle}>Credenciales de prueba:</Text>
+                    {loginMode === 'owner' ? (
+                      <Text style={styles.hintText}>
+                        Email: maria@deliempanada.com{"\n"}Contraseña: admin123
+                      </Text>
+                    ) : (
+                      <>
+                        <Text style={styles.hintText}>
+                          Norte: employee1@deliempanada.com{"\n"}Contraseña: work123
+                        </Text>
+                        <Text style={styles.hintText}>
+                          Sur: employee2@deliempanada.com{"\n"}Contraseña: work123
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                </View>
+              </>
+            )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </LinearGradient>
   );
@@ -392,22 +484,99 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modalButton: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 20,
     paddingHorizontal: 20,
     borderRadius: 12,
-    gap: 10,
+    gap: 8,
   },
   modalButtonTextAdmin: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#CC0000',
+    letterSpacing: 1,
   },
   modalButtonTextEmployee: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  modalButtonSubtext: {
+    fontSize: 13,
+    color: '#CC0000',
+    opacity: 0.8,
+  },
+  modalButtonSubtextWhite: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    opacity: 0.9,
+  },
+  loginForm: {
+    width: '100%',
+    marginTop: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    height: 48,
+    fontSize: 15,
+    color: '#333',
+  },
+  loginButton: {
+    backgroundColor: '#CC0000',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+  },
+  backButton: {
+    marginTop: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  credentialsHint: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  hintTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  hintText: {
+    fontSize: 11,
+    color: '#666',
+    lineHeight: 16,
+    marginBottom: 6,
   },
 });
