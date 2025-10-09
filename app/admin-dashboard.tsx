@@ -479,7 +479,7 @@ export default function AdminDashboardScreen() {
           >
             <Package size={20} color={selectedTab === 'orders' ? '#CC0000' : '#666'} />
             <Text style={[styles.tabText, selectedTab === 'orders' && styles.activeTabText]}>
-              Pedidos ({newOrders.length + activeOrders.length})
+              Pedidos ({orders.length})
             </Text>
           </TouchableOpacity>
           
