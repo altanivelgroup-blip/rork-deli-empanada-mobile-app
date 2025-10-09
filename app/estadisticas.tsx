@@ -28,6 +28,8 @@ import {
   Download,
   BarChart3,
   TrendingDown,
+  Bell,
+  LogOut,
 } from 'lucide-react-native';
 import BranchToggle from '@/components/BranchToggle';
 import { exportDailyReport, formatCurrency, calculateGrowth } from '@/utils/exportReport';
@@ -120,6 +122,7 @@ export default function EstadisticasScreen() {
   const [exporting, setExporting] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [dailyNote, setDailyNote] = useState('');
+  const [activeTab, setActiveTab] = useState<'pedidos' | 'estadisticas'>('estadisticas');
 
   const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com';
   const isMobile = width <= 800;
@@ -338,38 +341,70 @@ export default function EstadisticasScreen() {
           <ArrowLeft size={24} color={Colors.light.background} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Estadísticas</Text>
-          <Text style={styles.headerSubtitle}>Panel Ejecutivo</Text>
+          <Text style={styles.headerTitle}>DELI EMPANADA</Text>
+          <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
         </View>
         <View style={styles.headerRight}>
-          <BarChart3 size={24} color={Colors.light.background} />
+          <TouchableOpacity onPress={() => {}} style={styles.iconButton}>
+            <Bell size={20} color={Colors.light.background} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace('/')} style={styles.iconButton}>
+            <LogOut size={20} color={Colors.light.background} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.controlsBar}>
-        <BranchToggle
-          selectedBranch={selectedBranch}
-          onBranchChange={setSelectedBranch}
-          disabled={false}
-        />
+      <View style={styles.tabBar}>
         <TouchableOpacity
-          style={[styles.exportButton, exporting && styles.exportButtonDisabled]}
-          onPress={() => setConfirmVisible(true)}
-          disabled={exporting}
+          style={[styles.tab, activeTab === 'pedidos' && styles.tabActive]}
+          onPress={() => {
+            setActiveTab('pedidos');
+            router.push('/pedidos');
+          }}
         >
-          {exporting ? (
-            <ActivityIndicator size="small" color={Colors.light.primary} />
-          ) : (
-            <>
-              <Download size={18} color={Colors.light.primary} />
-              <Text style={styles.exportButtonText}>Generar Informe Diario</Text>
-            </>
-          )}
+          <Package size={18} color={activeTab === 'pedidos' ? Colors.light.primary : Colors.light.textLight} />
+          <Text style={[styles.tabText, activeTab === 'pedidos' && styles.tabTextActive]}>
+            Pedidos ({orders.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'estadisticas' && styles.tabActive]}
+          onPress={() => setActiveTab('estadisticas')}
+        >
+          <BarChart3 size={18} color={activeTab === 'estadisticas' ? Colors.light.primary : Colors.light.textLight} />
+          <Text style={[styles.tabText, activeTab === 'estadisticas' && styles.tabTextActive]}>
+            Estadísticas
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.sectionTitle}>📊 Resumen de Hoy</Text>
+      {activeTab === 'estadisticas' && (
+        <View style={styles.controlsBar}>
+          <BranchToggle
+            selectedBranch={selectedBranch}
+            onBranchChange={setSelectedBranch}
+            disabled={false}
+          />
+          <TouchableOpacity
+            style={[styles.exportButton, exporting && styles.exportButtonDisabled]}
+            onPress={() => setConfirmVisible(true)}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <ActivityIndicator size="small" color={Colors.light.primary} />
+            ) : (
+              <>
+                <Download size={18} color={Colors.light.primary} />
+                <Text style={styles.exportButtonText}>Generar Informe Diario</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {activeTab === 'estadisticas' && (
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          <Text style={styles.sectionTitle}>📊 Estadísticas de Hoy</Text>
         <View style={[styles.kpiGrid, isMobile && styles.kpiGridMobile]}>
           <KPICard
             title="Ingresos Hoy"
@@ -512,7 +547,8 @@ export default function EstadisticasScreen() {
             <Text style={styles.emptyText}>No hay datos de productos hoy</Text>
           )}
         </View>
-      </ScrollView>
+        </ScrollView>
+      )}
 
       <Modal
         transparent
@@ -600,8 +636,40 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   headerRight: {
-    width: 32,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconButton: {
+    padding: 4,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: Colors.light.background,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.light.border,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: Colors.light.primary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.textLight,
+  },
+  tabTextActive: {
+    color: Colors.light.primary,
+    fontWeight: '700',
   },
   controlsBar: {
     flexDirection: 'row',
