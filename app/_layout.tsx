@@ -88,6 +88,13 @@ function RootLayoutNav() {
           headerShown: true
         }} 
       />
+      <Stack.Screen 
+        name="pedidos" 
+        options={{ 
+          title: "Pedidos",
+          headerShown: false
+        }} 
+      />
     </Stack>
   );
 }
