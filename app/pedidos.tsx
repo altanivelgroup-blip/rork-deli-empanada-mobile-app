@@ -430,7 +430,7 @@ export default function PedidosScreen() {
             Pedidos ({orders.length})
           </Text>
         </View>
-      ) : isAdmin ? (
+      ) : (
         <View style={styles.tabBar}>
           <TouchableOpacity style={[styles.tab, styles.tabActive]}>
             <Package size={18} color={Colors.light.primary} />
@@ -448,7 +448,7 @@ export default function PedidosScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      ) : null}
+      )}
 
       <View style={styles.summaryCards}>
         <View style={[styles.summaryCard, { backgroundColor: '#FFF5F5' }]}>
