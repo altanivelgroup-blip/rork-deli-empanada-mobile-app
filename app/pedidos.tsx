@@ -409,7 +409,7 @@ export default function PedidosScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.push('/menu')} style={styles.backButton}>
           <ArrowLeft size={24} color={Colors.light.primary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>

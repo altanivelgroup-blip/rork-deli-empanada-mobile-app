@@ -11,8 +11,9 @@ import {
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ShoppingCart, Plus, Minus } from 'lucide-react-native';
+import { ShoppingCart, Plus, Minus, Package } from 'lucide-react-native';
 import { useCart } from '@/providers/CartProvider';
+import { useAdmin } from '@/providers/AdminProvider';
 import { MenuItem } from '@/types/menu';
 import { menuData } from '@/data/menu';
 
@@ -104,6 +105,7 @@ function MenuItemComponent({ item, quantity, onAdd, onRemove }: MenuItemComponen
 
 export default function MenuScreen() {
   const { cart, addToCart, removeFromCart, getTotalItems, getTotalPrice } = useCart();
+  const { currentUser } = useAdmin();
   const [selectedCategory, setSelectedCategory] = useState<'empanadas' | 'bebidas'>('empanadas');
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -169,9 +171,20 @@ export default function MenuScreen() {
         ))}
       </ScrollView>
 
+      {currentUser && (
+        <TouchableOpacity
+          style={styles.pedidosButton}
+          onPress={() => router.push('/pedidos')}
+          activeOpacity={0.9}
+        >
+          <Package size={24} color="#FFFFFF" />
+          <Text style={styles.pedidosButtonText}>Pedidos</Text>
+        </TouchableOpacity>
+      )}
+
       {getTotalItems() > 0 && (
         <TouchableOpacity
-          style={styles.cartButton}
+          style={[styles.cartButton, currentUser && { bottom: 90 }]}
           onPress={() => router.push('/cart')}
           activeOpacity={0.9}
         >
@@ -363,5 +376,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFD700',
+  },
+  pedidosButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: '#4CAF50',
+    borderRadius: 25,
+    paddingVertical: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  pedidosButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
