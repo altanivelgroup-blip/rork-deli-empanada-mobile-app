@@ -62,6 +62,13 @@ function RootLayoutNav() {
         }} 
       />
       <Stack.Screen 
+        name="admin-entrance" 
+        options={{ 
+          title: "Admin Entrance",
+          headerShown: false
+        }} 
+      />
+      <Stack.Screen 
         name="admin-login" 
         options={{ 
           title: "Admin Login",
