@@ -79,34 +79,16 @@ const KPICard = React.memo<KPICardProps>(({ title, value, subtitle, icon, color,
     <Animated.View
       style={[
         styles.kpiCard,
+        { borderLeftColor: color, borderLeftWidth: 4 },
         { transform: animated ? [{ scale: scaleAnim }] : [] },
       ]}
     >
-      <View style={[styles.kpiIconContainer, { backgroundColor: color + '20' }]}>
+      <View style={styles.kpiIconContainer}>
         {icon}
       </View>
       <View style={styles.kpiContent}>
-        <Text style={styles.kpiTitle}>{title}</Text>
         <Text style={styles.kpiValue}>{value}</Text>
-        {subtitle && <Text style={styles.kpiSubtitle}>{subtitle}</Text>}
-        {trend !== undefined && (
-          <View style={styles.trendContainer}>
-            {trend >= 0 ? (
-              <TrendingUp size={14} color={Colors.light.success} />
-            ) : (
-              <TrendingDown size={14} color={Colors.light.error} />
-            )}
-            <Text
-              style={[
-                styles.trendText,
-                { color: trend >= 0 ? Colors.light.success : Colors.light.error },
-              ]}
-            >
-              {trend >= 0 ? '+' : ''}
-              {trend.toFixed(1)}%
-            </Text>
-          </View>
-        )}
+        <Text style={styles.kpiTitle}>{title}</Text>
       </View>
     </Animated.View>
   );
@@ -223,6 +205,18 @@ export default function EstadisticasScreen() {
       ? `${peakHour[0]}:00 - ${parseInt(peakHour[0]) + 1}:00`
       : 'N/A';
 
+    const dayCounts: { [day: string]: number } = {};
+    todayOrders.forEach((order) => {
+      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const dayName = orderDate.toLocaleDateString('es-ES', { weekday: 'long' });
+      dayCounts[dayName] = (dayCounts[dayName] || 0) + 1;
+    });
+
+    const bestDay = Object.entries(dayCounts)
+      .sort(([, a], [, b]) => b - a)[0];
+
+    const bestDayName = bestDay ? bestDay[0] : 'N/A';
+
     return {
       revenue,
       completedOrders: completedOrders.length,
@@ -231,6 +225,7 @@ export default function EstadisticasScreen() {
       topProducts,
       peakHourRange,
       totalOrders: todayOrders.length,
+      bestDayName,
     };
   }, [orders]);
 
@@ -414,33 +409,29 @@ export default function EstadisticasScreen() {
           <KPICard
             title="Ingresos Hoy"
             value={formatCurrency(todayStats.revenue)}
-            subtitle={`${todayStats.totalOrders} pedidos`}
-            icon={<DollarSign size={24} color={Colors.light.primary} />}
-            color={Colors.light.primary}
-            animated={true}
-          />
-          <KPICard
-            title="Completados"
-            value={todayStats.completedOrders.toString()}
-            subtitle="Pedidos entregados"
-            icon={<CheckCircle size={24} color={Colors.light.success} />}
+            icon={<DollarSign size={20} color={Colors.light.primary} />}
             color={Colors.light.success}
             animated={true}
           />
           <KPICard
-            title="Pendientes"
+            title="Pedidos Completados"
+            value={todayStats.completedOrders.toString()}
+            icon={<CheckCircle size={20} color="#2196F3" />}
+            color="#2196F3"
+            animated={true}
+          />
+          <KPICard
+            title="Pedidos Pendientes"
             value={todayStats.pendingOrders.toString()}
-            subtitle="En proceso"
-            icon={<Clock size={24} color={Colors.light.warning} />}
+            icon={<Clock size={20} color={Colors.light.warning} />}
             color={Colors.light.warning}
             animated={true}
           />
           <KPICard
             title="Valor Promedio"
             value={formatCurrency(todayStats.averageOrderValue)}
-            subtitle="Por pedido"
-            icon={<Package size={24} color={Colors.light.accent} />}
-            color={Colors.light.accent}
+            icon={<TrendingUp size={20} color="#9C27B0" />}
+            color="#9C27B0"
             animated={true}
           />
         </View>
@@ -448,30 +439,32 @@ export default function EstadisticasScreen() {
         <Text style={styles.sectionTitle}>📈 Resumen Semanal</Text>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Ingresos (7 días)</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(weeklyStats.revenue)}</Text>
+            <View style={styles.summaryIconContainer}>
+              <BarChart3 size={20} color={Colors.light.success} />
+            </View>
+            <View style={styles.summaryTextContainer}>
+              <Text style={styles.summaryValue}>{formatCurrency(weeklyStats.revenue)}</Text>
+              <Text style={styles.summaryLabel}>Ingresos Semanal</Text>
+            </View>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Pedidos Completados</Text>
-            <Text style={styles.summaryValue}>{weeklyStats.ordersCount}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Crecimiento vs Semana Anterior</Text>
-            <View style={styles.trendContainer}>
-              {weeklyStats.growth >= 0 ? (
-                <TrendingUp size={16} color={Colors.light.success} />
-              ) : (
-                <TrendingDown size={16} color={Colors.light.error} />
-              )}
-              <Text
-                style={[
-                  styles.summaryValue,
-                  { color: weeklyStats.growth >= 0 ? Colors.light.success : Colors.light.error },
-                ]}
-              >
-                {weeklyStats.growth >= 0 ? '+' : ''}
-                {weeklyStats.growth.toFixed(1)}%
+            <View style={styles.summaryIconContainer}>
+              <TrendingUp size={20} color={Colors.light.success} />
+            </View>
+            <View style={styles.summaryTextContainer}>
+              <Text style={[styles.summaryValue, { color: Colors.light.success }]}>
+                {weeklyStats.growth >= 0 ? '+' : ''}{weeklyStats.growth.toFixed(1)}%
               </Text>
+              <Text style={styles.summaryLabel}>Crecimiento</Text>
+            </View>
+          </View>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryIconContainer}>
+              <Package size={20} color={Colors.light.warning} />
+            </View>
+            <View style={styles.summaryTextContainer}>
+              <Text style={styles.summaryValue}>{todayStats.bestDayName}</Text>
+              <Text style={styles.summaryLabel}>Mejor Día</Text>
             </View>
           </View>
         </View>
@@ -479,39 +472,34 @@ export default function EstadisticasScreen() {
         <Text style={styles.sectionTitle}>📅 Resumen Mensual</Text>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Ingresos del Mes</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(monthlyStats.revenue)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Pedidos Completados</Text>
-            <Text style={styles.summaryValue}>{monthlyStats.ordersCount}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Crecimiento vs Mes Anterior</Text>
-            <View style={styles.trendContainer}>
-              {monthlyStats.growth >= 0 ? (
-                <TrendingUp size={16} color={Colors.light.success} />
-              ) : (
-                <TrendingDown size={16} color={Colors.light.error} />
-              )}
-              <Text
-                style={[
-                  styles.summaryValue,
-                  { color: monthlyStats.growth >= 0 ? Colors.light.success : Colors.light.error },
-                ]}
-              >
-                {monthlyStats.growth >= 0 ? '+' : ''}
-                {monthlyStats.growth.toFixed(1)}%
-              </Text>
+            <View style={styles.summaryIconContainer}>
+              <DollarSign size={20} color={Colors.light.success} />
+            </View>
+            <View style={styles.summaryTextContainer}>
+              <Text style={styles.summaryValue}>{formatCurrency(monthlyStats.revenue)}</Text>
+              <Text style={styles.summaryLabel}>Ingresos del Mes</Text>
             </View>
           </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>🕒 Pico de Ventas</Text>
-        <View style={styles.peakCard}>
-          <Clock size={32} color={Colors.light.accent} />
-          <Text style={styles.peakTime}>{todayStats.peakHourRange}</Text>
-          <Text style={styles.peakLabel}>Hora con más pedidos hoy</Text>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryIconContainer}>
+              <TrendingUp size={20} color={Colors.light.success} />
+            </View>
+            <View style={styles.summaryTextContainer}>
+              <Text style={[styles.summaryValue, { color: Colors.light.success }]}>
+                {monthlyStats.growth >= 0 ? '+' : ''}{monthlyStats.growth.toFixed(1)}%
+              </Text>
+              <Text style={styles.summaryLabel}>Crecimiento Mensual</Text>
+            </View>
+          </View>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryIconContainer}>
+              <Package size={20} color="#2196F3" />
+            </View>
+            <View style={styles.summaryTextContainer}>
+              <Text style={styles.summaryValue}>{monthlyStats.growth.toFixed(1)}%</Text>
+              <Text style={styles.summaryLabel}>Meta del Mes</Text>
+            </View>
+          </View>
         </View>
 
         <Text style={styles.sectionTitle}>🏆 Top Productos del Día</Text>
@@ -728,30 +716,31 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 150,
     backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 2,
       },
       android: {
-        elevation: 3,
+        elevation: 2,
       },
       web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
       },
     }),
   },
   kpiIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.light.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -759,13 +748,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   kpiTitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.light.textLight,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '500',
+    marginTop: 2,
   },
   kpiValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: Colors.light.text,
   },
@@ -773,6 +762,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.light.textLight,
     marginTop: 2,
+  },
+  summaryIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.light.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryTextContainer: {
+    flex: 1,
+    marginLeft: 12,
   },
   trendContainer: {
     flexDirection: 'row',
@@ -806,16 +807,16 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.light.textLight,
-    fontWeight: '600',
+    fontWeight: '500',
+    marginTop: 2,
   },
   summaryValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: Colors.light.text,
   },
