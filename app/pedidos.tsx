@@ -1,7 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import BranchToggle from '@/components/BranchToggle';
-
-type Branch = 'Todas' | 'Norte' | 'Sur';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,16 +10,13 @@ import {
   RefreshControl,
   Alert,
   Platform,
-  useWindowDimensions,
-  Animated,
-  PanResponder,
 } from 'react-native';
 import { router } from 'expo-router';
 import { collection, onSnapshot, updateDoc, doc, query, orderBy, where } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useAdmin } from '@/providers/AdminProvider';
 import Colors from '@/constants/colors';
-import { Clock, MapPin, Phone, User, Package, ChevronDown, ArrowLeft, Store } from 'lucide-react-native';
+import { ArrowLeft, Package, BarChart3 } from 'lucide-react-native';
 
 type OrderStatus = 'pending' | 'paid' | 'preparing' | 'out_for_delivery' | 'delivered';
 
@@ -51,30 +45,11 @@ interface Order {
   branch?: 'Norte' | 'Sur';
 }
 
-const STATUS_CONFIG = {
-  pending: { label: 'Pendiente', color: '#FF9800', emoji: '🟡' },
-  paid: { label: 'Pagado', color: '#2196F3', emoji: '💳' },
-  preparing: { label: 'Preparando', color: '#FFC107', emoji: '👨‍🍳' },
-  out_for_delivery: { label: 'En Camino', color: '#FF5722', emoji: '🚚' },
-  delivered: { label: 'Entregado', color: '#4CAF50', emoji: '✅' },
-};
-
-const FILTER_OPTIONS: OrderStatus[] = ['pending', 'paid', 'preparing', 'out_for_delivery', 'delivered'];
-
 export default function PedidosScreen() {
   const { currentUser } = useAdmin();
-  const { width } = useWindowDimensions();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<OrderStatus | 'all'>('all');
-  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
-  const [previousOrderCount, setPreviousOrderCount] = useState(0);
-  const [selectedBranch, setSelectedBranch] = useState<Branch>('Todas');
-  const newOrderAnimation = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  
-  const isMobile = width <= 800;
 
   const isAdmin = currentUser?.email === 'maria@deliempanada.com';
   const isEmployee1 = currentUser?.email === 'employee1@deliempanada.com';
@@ -97,15 +72,7 @@ export default function PedidosScreen() {
 
     let q;
     if (isAdmin) {
-      if (selectedBranch === 'Todas') {
-        q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
-      } else {
-        q = query(
-          collection(db, 'pedidos'),
-          where('branch', '==', selectedBranch),
-          orderBy('createdAt', 'desc')
-        );
-      }
+      q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
     } else if (userBranch) {
       q = query(
         collection(db, 'pedidos'),
@@ -127,17 +94,6 @@ export default function PedidosScreen() {
           } as Order);
         });
         
-        if (ordersData.length > previousOrderCount && previousOrderCount > 0) {
-          console.log('🔔 ¡Nuevo pedido recibido!');
-          playNewOrderAnimation();
-          if (Platform.OS !== 'web') {
-            Alert.alert('🎉 Nuevo Pedido', '¡Ha llegado un nuevo pedido!', [
-              { text: 'Ver', onPress: () => {} },
-            ]);
-          }
-        }
-        
-        setPreviousOrderCount(ordersData.length);
         setOrders(ordersData);
         setLoading(false);
         setRefreshing(false);
@@ -151,24 +107,9 @@ export default function PedidosScreen() {
     );
 
     return () => unsubscribe();
-  }, [currentUser, isAdmin, userBranch, previousOrderCount, selectedBranch]);
+  }, [currentUser, isAdmin, userBranch]);
 
-  const playNewOrderAnimation = useCallback(() => {
-    Animated.sequence([
-      Animated.timing(newOrderAnimation, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(newOrderAnimation, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [newOrderAnimation]);
-
-  const handleStatusUpdate = useCallback(async (orderId: string, newStatus: OrderStatus) => {
+  const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
     if (!db) return;
 
     try {
@@ -176,366 +117,37 @@ export default function PedidosScreen() {
         status: newStatus,
       });
       console.log(`✅ Order ${orderId} updated to ${newStatus}`);
-      
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
     } catch (error) {
       console.error('Error updating order:', error);
       Alert.alert('Error', 'No se pudo actualizar el estado del pedido');
     }
-  }, [fadeAnim]);
+  };
 
-  const toggleOrderExpansion = useCallback((orderId: string) => {
-    setExpandedOrders((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(orderId)) {
-        newSet.delete(orderId);
-      } else {
-        newSet.add(orderId);
-      }
-      return newSet;
-    });
-  }, []);
+  const newOrders = useMemo(() => orders.filter(o => o.status === 'pending' || o.status === 'paid'), [orders]);
+  const processingOrders = useMemo(() => orders.filter(o => o.status === 'preparing' || o.status === 'out_for_delivery'), [orders]);
+  const completedOrders = useMemo(() => orders.filter(o => o.status === 'delivered'), [orders]);
 
-  const filteredOrders = useMemo(() => {
-    if (selectedFilter === 'all') return orders;
-    return orders.filter((order) => order.status === selectedFilter);
-  }, [orders, selectedFilter]);
-
-  const onRefresh = useCallback(() => {
+  const onRefresh = () => {
     setRefreshing(true);
-  }, []);
+  };
 
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'Fecha no disponible';
+  const formatTime = (timestamp: any) => {
+    if (!timestamp) return '';
     
     try {
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleString('es-CO', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
+      return date.toLocaleTimeString('es-CO', {
         hour: '2-digit',
         minute: '2-digit',
       });
     } catch (error) {
-      return 'Fecha inválida';
+      return '';
     }
   };
 
-  const renderStatusButtons = useCallback((order: Order) => {
-    const currentStatusIndex = FILTER_OPTIONS.indexOf(order.status);
-    const nextStatuses = FILTER_OPTIONS.slice(currentStatusIndex + 1);
-
-    if (nextStatuses.length === 0) return null;
-
-    return (
-      <View style={styles.statusButtons}>
-        {nextStatuses.map((status) => (
-          <TouchableOpacity
-            key={status}
-            style={[styles.statusButton, { backgroundColor: STATUS_CONFIG[status].color }]}
-            onPress={() => handleStatusUpdate(order.id, status)}
-          >
-            <Text style={styles.statusButtonText}>
-              {STATUS_CONFIG[status].emoji} {STATUS_CONFIG[status].label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  }, [handleStatusUpdate]);
-
-  const MobileOrderCard = React.memo<{ order: Order }>(({ order }) => {
-    const isExpanded = expandedOrders.has(order.id);
-    const statusConfig = STATUS_CONFIG[order.status];
-    const currentStatusIndex = FILTER_OPTIONS.indexOf(order.status);
-    const nextStatus = FILTER_OPTIONS[currentStatusIndex + 1];
-    const prevStatus = currentStatusIndex > 0 ? FILTER_OPTIONS[currentStatusIndex - 1] : null;
-
-    const pan = useMemo(() => new Animated.ValueXY(), []);
-    const cardFadeIn = useMemo(() => new Animated.Value(0), []);
-    const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-    
-    useEffect(() => {
-      Animated.timing(cardFadeIn, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }).start();
-    }, [cardFadeIn]);
-
-    const panResponder = useMemo(
-      () =>
-        PanResponder.create({
-          onStartShouldSetPanResponder: () => !isExpanded,
-          onMoveShouldSetPanResponder: (_, gestureState) => {
-            return !isExpanded && Math.abs(gestureState.dx) > 10;
-          },
-          onPanResponderMove: (_, gestureState) => {
-            if (gestureState.dx > 0 && prevStatus) {
-              pan.setValue({ x: Math.min(gestureState.dx, 100), y: 0 });
-              setSwipeDirection('right');
-            } else if (gestureState.dx < 0 && nextStatus) {
-              pan.setValue({ x: Math.max(gestureState.dx, -100), y: 0 });
-              setSwipeDirection('left');
-            }
-          },
-          onPanResponderRelease: (_, gestureState) => {
-            if (Math.abs(gestureState.dx) > 80) {
-              if (gestureState.dx > 0 && prevStatus) {
-                handleStatusUpdate(order.id, prevStatus);
-              } else if (gestureState.dx < 0 && nextStatus) {
-                handleStatusUpdate(order.id, nextStatus);
-              }
-            }
-            Animated.spring(pan, {
-              toValue: { x: 0, y: 0 },
-              useNativeDriver: false,
-            }).start();
-            setSwipeDirection(null);
-          },
-        }),
-      [isExpanded, prevStatus, nextStatus, pan, order.id]
-    );
-
-    const backgroundColor = pan.x.interpolate({
-      inputRange: [-100, 0, 100],
-      outputRange: [
-        nextStatus ? STATUS_CONFIG[nextStatus].color + '20' : '#fff',
-        '#fff',
-        prevStatus ? STATUS_CONFIG[prevStatus].color + '20' : '#fff',
-      ],
-    });
-
-    return (
-      <Animated.View
-        style={[
-          styles.orderCard,
-          {
-            transform: [{ translateX: pan.x }],
-            backgroundColor,
-            opacity: cardFadeIn,
-          },
-        ]}
-        {...panResponder.panHandlers}
-      >
-        {swipeDirection === 'left' && nextStatus && (
-          <View style={[styles.swipeIndicator, styles.swipeIndicatorLeft]}>
-            <Text style={styles.swipeIndicatorText}>
-              {STATUS_CONFIG[nextStatus].emoji} {STATUS_CONFIG[nextStatus].label}
-            </Text>
-          </View>
-        )}
-        {swipeDirection === 'right' && prevStatus && (
-          <View style={[styles.swipeIndicator, styles.swipeIndicatorRight]}>
-            <Text style={styles.swipeIndicatorText}>
-              {STATUS_CONFIG[prevStatus].emoji} {STATUS_CONFIG[prevStatus].label}
-            </Text>
-          </View>
-        )}
-        <TouchableOpacity
-          style={styles.orderHeader}
-          onPress={() => toggleOrderExpansion(order.id)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.orderHeaderLeft}>
-            <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
-              <Text style={styles.statusEmoji}>{statusConfig.emoji}</Text>
-              <Text style={styles.statusText}>{statusConfig.label}</Text>
-            </View>
-            {order.branch && (
-              <View style={styles.branchBadge}>
-                <Store size={12} color={Colors.light.accent} />
-                <Text style={styles.branchText}>{order.branch}</Text>
-              </View>
-            )}
-            <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
-          </View>
-          <ChevronDown
-            size={20}
-            color={Colors.light.text}
-            style={{
-              transform: [{ rotate: isExpanded ? '180deg' : '0deg' }],
-            }}
-          />
-        </TouchableOpacity>
-
-        <View style={styles.orderInfo}>
-          <View style={styles.infoRow}>
-            <User size={16} color={Colors.light.textLight} />
-            <Text style={styles.infoText}>{order.customerName}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Phone size={16} color={Colors.light.textLight} />
-            <Text style={styles.infoText}>{order.contact}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <MapPin size={16} color={Colors.light.textLight} />
-            <Text style={styles.infoText}>{order.address}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Clock size={16} color={Colors.light.textLight} />
-            <Text style={styles.infoText}>{formatDate(order.createdAt)}</Text>
-          </View>
-        </View>
-
-        {isExpanded && (
-          <>
-            <View style={styles.itemsSection}>
-              <Text style={styles.itemsTitle}>Artículos:</Text>
-              {order.items.map((item, index) => (
-                <View key={index} style={styles.itemRow}>
-                  <Text style={styles.itemName}>
-                    {item.name} × {item.quantity}
-                  </Text>
-                  <Text style={styles.itemPrice}>
-                    ${(item.price * item.quantity).toLocaleString('es-CO')}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.totalSection}>
-              <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalAmount}>
-                ${order.totalAmount.toLocaleString('es-CO')} {order.currency}
-              </Text>
-            </View>
-
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentMethod}>
-                💳 {order.paymentMethod === 'tarjeta' ? 'Tarjeta' : 'Efectivo'}
-              </Text>
-              <Text style={styles.transactionId}>ID: {order.transactionId}</Text>
-            </View>
-
-            {order.notes && (
-              <View style={styles.notesSection}>
-                <Text style={styles.notesLabel}>Notas:</Text>
-                <Text style={styles.notesText}>{order.notes}</Text>
-              </View>
-            )}
-
-            {(isAdmin || isEmployee) && renderStatusButtons(order)}
-          </>
-        )}
-
-        {!isExpanded && (nextStatus || prevStatus) && (
-          <View style={styles.swipeHint}>
-            <Text style={styles.swipeHintText}>← Desliza para cambiar estado →</Text>
-          </View>
-        )}
-      </Animated.View>
-    );
-  });
-  MobileOrderCard.displayName = 'MobileOrderCard';
-
-  const renderTabletOrderCard = useCallback((order: Order) => {
-    const isExpanded = expandedOrders.has(order.id);
-    const statusConfig = STATUS_CONFIG[order.status];
-
-    return (
-      <View key={order.id} style={styles.orderCard}>
-        <TouchableOpacity
-          style={styles.orderHeader}
-          onPress={() => toggleOrderExpansion(order.id)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.orderHeaderLeft}>
-            <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
-              <Text style={styles.statusEmoji}>{statusConfig.emoji}</Text>
-              <Text style={styles.statusText}>{statusConfig.label}</Text>
-            </View>
-            {order.branch && (
-              <View style={styles.branchBadge}>
-                <Store size={12} color={Colors.light.accent} />
-                <Text style={styles.branchText}>{order.branch}</Text>
-              </View>
-            )}
-            <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
-          </View>
-          <ChevronDown
-            size={20}
-            color={Colors.light.text}
-            style={{
-              transform: [{ rotate: isExpanded ? '180deg' : '0deg' }],
-            }}
-          />
-        </TouchableOpacity>
-
-        <View style={styles.orderInfo}>
-          <View style={styles.infoRow}>
-            <User size={16} color={Colors.light.textLight} />
-            <Text style={styles.infoText}>{order.customerName}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Phone size={16} color={Colors.light.textLight} />
-            <Text style={styles.infoText}>{order.contact}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <MapPin size={16} color={Colors.light.textLight} />
-            <Text style={styles.infoText}>{order.address}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Clock size={16} color={Colors.light.textLight} />
-            <Text style={styles.infoText}>{formatDate(order.createdAt)}</Text>
-          </View>
-        </View>
-
-        {isExpanded && (
-          <>
-            <View style={styles.itemsSection}>
-              <Text style={styles.itemsTitle}>Artículos:</Text>
-              {order.items.map((item, index) => (
-                <View key={index} style={styles.itemRow}>
-                  <Text style={styles.itemName}>
-                    {item.name} × {item.quantity}
-                  </Text>
-                  <Text style={styles.itemPrice}>
-                    ${(item.price * item.quantity).toLocaleString('es-CO')}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.totalSection}>
-              <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalAmount}>
-                ${order.totalAmount.toLocaleString('es-CO')} {order.currency}
-              </Text>
-            </View>
-
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentMethod}>
-                💳 {order.paymentMethod === 'tarjeta' ? 'Tarjeta' : 'Efectivo'}
-              </Text>
-              <Text style={styles.transactionId}>ID: {order.transactionId}</Text>
-            </View>
-
-            {order.notes && (
-              <View style={styles.notesSection}>
-                <Text style={styles.notesLabel}>Notas:</Text>
-                <Text style={styles.notesText}>{order.notes}</Text>
-              </View>
-            )}
-
-            {(isAdmin || isEmployee) && renderStatusButtons(order)}
-          </>
-        )}
-      </View>
-    );
-  }, [expandedOrders, isAdmin, isEmployee, toggleOrderExpansion, renderStatusButtons]);
+  const formatCurrency = (amount: number) => {
+    return `$ ${amount.toLocaleString('es-CO')}`;
+  };
 
   if (!currentUser) {
     return null;
@@ -552,92 +164,53 @@ export default function PedidosScreen() {
     );
   }
 
-  const headerScale = newOrderAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.1],
-  });
-
-  const headerBackgroundColor = newOrderAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [Colors.light.primary, Colors.light.accent],
-  });
-
   return (
     <SafeAreaView style={styles.container}>
-      <Animated.View style={[styles.header, { backgroundColor: headerBackgroundColor }]}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={Colors.light.background} />
+          <ArrowLeft size={24} color={Colors.light.primary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Gestión de Pedidos</Text>
-          {userBranch && (
-            <View style={styles.headerBranchBadge}>
-              <Store size={14} color={Colors.light.background} />
-              <Text style={styles.headerBranchText}>{userBranch}</Text>
-            </View>
-          )}
+          <Text style={styles.headerTitle}>DELI EMPANADA</Text>
+          <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
         </View>
-        <Animated.View style={[styles.headerRight, { transform: [{ scale: headerScale }] }]}>
-          <Package size={24} color={Colors.light.background} />
-        </Animated.View>
-      </Animated.View>
+        <View style={styles.headerRight} />
+      </View>
 
-      {isAdmin && (
-        <View style={styles.adminControls}>
-          <BranchToggle
-            selectedBranch={selectedBranch}
-            onBranchChange={setSelectedBranch}
-            disabled={false}
-          />
-        </View>
-      )}
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-        contentContainerStyle={styles.filterContent}
-      >
-        <TouchableOpacity
-          style={[styles.filterButton, selectedFilter === 'all' && styles.filterButtonActive]}
-          onPress={() => setSelectedFilter('all')}
-        >
-          <Text
-            style={[
-              styles.filterButtonText,
-              selectedFilter === 'all' && styles.filterButtonTextActive,
-            ]}
-          >
-            Todos ({orders.length})
+      <View style={styles.tabBar}>
+        <TouchableOpacity style={[styles.tab, styles.tabActive]}>
+          <Package size={18} color={Colors.light.primary} />
+          <Text style={[styles.tabText, styles.tabTextActive]}>
+            Pedidos ({orders.length})
           </Text>
         </TouchableOpacity>
-        {FILTER_OPTIONS.map((status) => {
-          const count = orders.filter((o) => o.status === status).length;
-          return (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.filterButton,
-                selectedFilter === status && styles.filterButtonActive,
-              ]}
-              onPress={() => setSelectedFilter(status)}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  selectedFilter === status && styles.filterButtonTextActive,
-                ]}
-              >
-                {STATUS_CONFIG[status].emoji} {STATUS_CONFIG[status].label} ({count})
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+        <TouchableOpacity 
+          style={styles.tab}
+          onPress={() => router.push('/estadisticas')}
+        >
+          <BarChart3 size={18} color={Colors.light.textLight} />
+          <Text style={styles.tabText}>Estadísticas</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.summaryCards}>
+        <View style={[styles.summaryCard, { backgroundColor: '#FFF5F5' }]}>
+          <Text style={[styles.summaryNumber, { color: Colors.light.primary }]}>{newOrders.length}</Text>
+          <Text style={styles.summaryLabel}>Nuevos</Text>
+        </View>
+        <View style={[styles.summaryCard, { backgroundColor: '#FFF8E1' }]}>
+          <Text style={[styles.summaryNumber, { color: '#FF9800' }]}>{processingOrders.length}</Text>
+          <Text style={styles.summaryLabel}>En Proceso</Text>
+        </View>
+        <View style={[styles.summaryCard, { backgroundColor: '#E8F5E9' }]}>
+          <Text style={[styles.summaryNumber, { color: Colors.light.success }]}>{completedOrders.length}</Text>
+          <Text style={styles.summaryLabel}>Completados</Text>
+        </View>
+      </View>
 
       <ScrollView
-        style={styles.ordersContainer}
-        contentContainerStyle={styles.ordersContent}
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -646,22 +219,80 @@ export default function PedidosScreen() {
           />
         }
       >
-        {filteredOrders.length === 0 ? (
+        {newOrders.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Package size={64} color={Colors.light.border} />
-            <Text style={styles.emptyText}>No hay pedidos</Text>
-            <Text style={styles.emptySubtext}>
-              {selectedFilter === 'all'
-                ? 'Los pedidos aparecerán aquí'
-                : `No hay pedidos con estado "${STATUS_CONFIG[selectedFilter as OrderStatus].label}"`}
-            </Text>
+            <Text style={styles.emptyTitle}>No hay pedidos</Text>
+            <Text style={styles.emptySubtext}>Los pedidos aparecerán aquí</Text>
           </View>
-        ) : isMobile ? (
-          filteredOrders.map((order) => <MobileOrderCard key={order.id} order={order} />)
         ) : (
-          <View style={styles.tabletGrid}>
-            {filteredOrders.map(renderTabletOrderCard)}
-          </View>
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>⚠️</Text>
+              <Text style={styles.sectionTitle}>Pedidos Nuevos ({newOrders.length})</Text>
+            </View>
+
+            {newOrders.map((order) => (
+              <View key={order.id} style={styles.orderCard}>
+                <View style={styles.orderHeader}>
+                  <View style={styles.orderHeaderLeft}>
+                    <Text style={styles.orderCustomer}>{order.customerName}</Text>
+                    <Text style={styles.orderTime}>{formatTime(order.createdAt)}</Text>
+                  </View>
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusBadgeText}>Nuevo</Text>
+                  </View>
+                </View>
+
+                <View style={styles.orderAmount}>
+                  <Text style={styles.orderAmountText}>{formatCurrency(order.totalAmount)}</Text>
+                </View>
+
+                <View style={styles.orderItems}>
+                  {order.items.map((item, index) => (
+                    <Text key={index} style={styles.orderItemText}>
+                      {item.quantity}x {item.name}
+                    </Text>
+                  ))}
+                </View>
+
+                <View style={styles.orderDelivery}>
+                  <Text style={styles.orderDeliveryIcon}>🏠</Text>
+                  <Text style={styles.orderDeliveryText}>Dom-icilio</Text>
+                </View>
+
+                <View style={styles.orderActions}>
+                  <TouchableOpacity
+                    style={styles.acceptButton}
+                    onPress={() => handleStatusUpdate(order.id, 'preparing')}
+                  >
+                    <Text style={styles.acceptButtonIcon}>✓</Text>
+                    <Text style={styles.acceptButtonText}>Aceptar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.rejectButton}
+                    onPress={() => {
+                      Alert.alert(
+                        'Rechazar Pedido',
+                        '¿Estás seguro de rechazar este pedido?',
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          { 
+                            text: 'Rechazar', 
+                            style: 'destructive',
+                            onPress: () => handleStatusUpdate(order.id, 'delivered')
+                          }
+                        ]
+                      );
+                    }}
+                  >
+                    <Text style={styles.rejectButtonIcon}>✕</Text>
+                    <Text style={styles.rejectButtonText}>Rechazar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -671,7 +302,7 @@ export default function PedidosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: '#F5F5F5',
   },
   loadingContainer: {
     flex: 1,
@@ -684,84 +315,123 @@ const styles = StyleSheet.create({
     color: Colors.light.textLight,
   },
   header: {
-    backgroundColor: Colors.light.primary,
+    backgroundColor: Colors.light.background,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
   },
   backButton: {
     padding: 4,
   },
+  headerCenter: {
+    alignItems: 'center',
+  },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.light.background,
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: Colors.light.textLight,
   },
   headerRight: {
     width: 32,
-    alignItems: 'flex-end',
   },
-  headerCenter: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  headerBranchBadge: {
+  tabBar: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    gap: 4,
-  },
-  headerBranchText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.light.background,
-  },
-  filterContainer: {
     backgroundColor: Colors.light.background,
-    borderBottomWidth: 1,
+    borderBottomWidth: 2,
     borderBottomColor: Colors.light.border,
   },
-  filterContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
     gap: 8,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
   },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: Colors.light.surface,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
+  tabActive: {
+    borderBottomColor: Colors.light.primary,
   },
-  filterButtonActive: {
-    backgroundColor: Colors.light.primary,
-    borderColor: Colors.light.primary,
-  },
-  filterButtonText: {
+  tabText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.textLight,
+  },
+  tabTextActive: {
+    color: Colors.light.primary,
+    fontWeight: '700',
+  },
+  summaryCards: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+    backgroundColor: Colors.light.background,
+  },
+  summaryCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      },
+    }),
+  },
+  summaryNumber: {
+    fontSize: 32,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  summaryLabel: {
+    fontSize: 12,
     fontWeight: '600',
     color: Colors.light.text,
   },
-  filterButtonTextActive: {
-    color: Colors.light.background,
-  },
-  ordersContainer: {
+  content: {
     flex: 1,
   },
-  ordersContent: {
+  contentContainer: {
     padding: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  sectionIcon: {
+    fontSize: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.text,
   },
   orderCard: {
     backgroundColor: Colors.light.background,
     borderRadius: 12,
-    marginBottom: 16,
     padding: 16,
+    marginBottom: 12,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -780,157 +450,103 @@ const styles = StyleSheet.create({
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   orderHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-  },
-  statusEmoji: {
-    fontSize: 14,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.light.background,
-  },
-  orderId: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.textLight,
-  },
-  branchBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: Colors.light.surface,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: Colors.light.accent,
-  },
-  branchText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.light.accent,
-  },
-  orderInfo: {
-    gap: 8,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: Colors.light.text,
     flex: 1,
   },
-  itemsSection: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-  },
-  itemsTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  itemName: {
-    fontSize: 14,
-    color: Colors.light.text,
-    flex: 1,
-  },
-  itemPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  totalSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-  },
-  totalLabel: {
+  orderCustomer: {
     fontSize: 16,
     fontWeight: '700',
     color: Colors.light.text,
+    marginBottom: 4,
   },
-  totalAmount: {
-    fontSize: 18,
+  orderTime: {
+    fontSize: 13,
+    color: Colors.light.textLight,
+  },
+  statusBadge: {
+    backgroundColor: '#FFE5E5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontSize: 12,
     fontWeight: '700',
     color: Colors.light.primary,
   },
-  paymentInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+  orderAmount: {
+    marginBottom: 12,
   },
-  paymentMethod: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  transactionId: {
-    fontSize: 12,
-    color: Colors.light.textLight,
-  },
-  notesSection: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: Colors.light.surface,
-    borderRadius: 8,
-  },
-  notesLabel: {
-    fontSize: 12,
+  orderAmountText: {
+    fontSize: 20,
     fontWeight: '700',
-    color: Colors.light.textLight,
-    marginBottom: 4,
+    color: Colors.light.success,
   },
-  notesText: {
+  orderItems: {
+    marginBottom: 12,
+    gap: 4,
+  },
+  orderItemText: {
     fontSize: 14,
     color: Colors.light.text,
-    fontStyle: 'italic',
   },
-  statusButtons: {
-    marginTop: 16,
+  orderDelivery: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
+  },
+  orderDeliveryIcon: {
+    fontSize: 14,
+  },
+  orderDeliveryText: {
+    fontSize: 13,
+    color: Colors.light.textLight,
+    fontWeight: '500',
+  },
+  orderActions: {
+    flexDirection: 'row',
     gap: 8,
   },
-  statusButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  acceptButton: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.light.success,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
   },
-  statusButtonText: {
+  acceptButtonIcon: {
+    fontSize: 16,
+    color: Colors.light.background,
+    fontWeight: '700',
+  },
+  acceptButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.light.background,
+  },
+  rejectButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  rejectButtonIcon: {
+    fontSize: 16,
+    color: Colors.light.background,
+    fontWeight: '700',
+  },
+  rejectButtonText: {
     fontSize: 14,
     fontWeight: '700',
     color: Colors.light.background,
@@ -941,7 +557,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 64,
   },
-  emptyText: {
+  emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: Colors.light.text,
@@ -952,50 +568,5 @@ const styles = StyleSheet.create({
     color: Colors.light.textLight,
     marginTop: 8,
     textAlign: 'center',
-  },
-  tabletGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  swipeIndicator: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    zIndex: -1,
-  },
-  swipeIndicatorLeft: {
-    right: 0,
-    alignItems: 'flex-end',
-  },
-  swipeIndicatorRight: {
-    left: 0,
-    alignItems: 'flex-start',
-  },
-  swipeIndicatorText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.light.text,
-  },
-  swipeHint: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-    alignItems: 'center',
-  },
-  swipeHintText: {
-    fontSize: 11,
-    color: Colors.light.textLight,
-    fontStyle: 'italic',
-  },
-  adminControls: {
-    backgroundColor: Colors.light.background,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
   },
 });
