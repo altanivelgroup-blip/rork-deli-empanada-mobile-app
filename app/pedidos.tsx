@@ -10,6 +10,9 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  useWindowDimensions,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { router } from 'expo-router';
 import { collection, onSnapshot, updateDoc, doc, query, orderBy } from 'firebase/firestore';
@@ -56,11 +59,14 @@ const FILTER_OPTIONS: OrderStatus[] = ['pending', 'paid', 'preparing', 'out_for_
 
 export default function PedidosScreen() {
   const { currentUser } = useAdmin();
+  const { width } = useWindowDimensions();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<OrderStatus | 'all'>('all');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  
+  const isMobile = width <= 800;
 
   const isAdmin = currentUser?.email === 'maria@deliempanada.com';
   const isEmployee = currentUser?.email === 'employee1@deliempanada.com' || 
@@ -180,7 +186,176 @@ export default function PedidosScreen() {
     );
   }, [handleStatusUpdate]);
 
-  const renderOrderCard = useCallback((order: Order) => {
+  const MobileOrderCard = React.memo<{ order: Order }>(({ order }) => {
+    const isExpanded = expandedOrders.has(order.id);
+    const statusConfig = STATUS_CONFIG[order.status];
+    const currentStatusIndex = FILTER_OPTIONS.indexOf(order.status);
+    const nextStatus = FILTER_OPTIONS[currentStatusIndex + 1];
+    const prevStatus = currentStatusIndex > 0 ? FILTER_OPTIONS[currentStatusIndex - 1] : null;
+
+    const pan = useMemo(() => new Animated.ValueXY(), []);
+    const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+
+    const panResponder = useMemo(
+      () =>
+        PanResponder.create({
+          onStartShouldSetPanResponder: () => !isExpanded,
+          onMoveShouldSetPanResponder: (_, gestureState) => {
+            return !isExpanded && Math.abs(gestureState.dx) > 10;
+          },
+          onPanResponderMove: (_, gestureState) => {
+            if (gestureState.dx > 0 && prevStatus) {
+              pan.setValue({ x: Math.min(gestureState.dx, 100), y: 0 });
+              setSwipeDirection('right');
+            } else if (gestureState.dx < 0 && nextStatus) {
+              pan.setValue({ x: Math.max(gestureState.dx, -100), y: 0 });
+              setSwipeDirection('left');
+            }
+          },
+          onPanResponderRelease: (_, gestureState) => {
+            if (Math.abs(gestureState.dx) > 80) {
+              if (gestureState.dx > 0 && prevStatus) {
+                handleStatusUpdate(order.id, prevStatus);
+              } else if (gestureState.dx < 0 && nextStatus) {
+                handleStatusUpdate(order.id, nextStatus);
+              }
+            }
+            Animated.spring(pan, {
+              toValue: { x: 0, y: 0 },
+              useNativeDriver: false,
+            }).start();
+            setSwipeDirection(null);
+          },
+        }),
+      [isExpanded, prevStatus, nextStatus, pan, order.id]
+    );
+
+    const backgroundColor = pan.x.interpolate({
+      inputRange: [-100, 0, 100],
+      outputRange: [
+        nextStatus ? STATUS_CONFIG[nextStatus].color + '20' : '#fff',
+        '#fff',
+        prevStatus ? STATUS_CONFIG[prevStatus].color + '20' : '#fff',
+      ],
+    });
+
+    return (
+      <Animated.View
+        style={[
+          styles.orderCard,
+          {
+            transform: [{ translateX: pan.x }],
+            backgroundColor,
+          },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        {swipeDirection === 'left' && nextStatus && (
+          <View style={[styles.swipeIndicator, styles.swipeIndicatorLeft]}>
+            <Text style={styles.swipeIndicatorText}>
+              {STATUS_CONFIG[nextStatus].emoji} {STATUS_CONFIG[nextStatus].label}
+            </Text>
+          </View>
+        )}
+        {swipeDirection === 'right' && prevStatus && (
+          <View style={[styles.swipeIndicator, styles.swipeIndicatorRight]}>
+            <Text style={styles.swipeIndicatorText}>
+              {STATUS_CONFIG[prevStatus].emoji} {STATUS_CONFIG[prevStatus].label}
+            </Text>
+          </View>
+        )}
+        <TouchableOpacity
+          style={styles.orderHeader}
+          onPress={() => toggleOrderExpansion(order.id)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.orderHeaderLeft}>
+            <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
+              <Text style={styles.statusEmoji}>{statusConfig.emoji}</Text>
+              <Text style={styles.statusText}>{statusConfig.label}</Text>
+            </View>
+            <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
+          </View>
+          <ChevronDown
+            size={20}
+            color={Colors.light.text}
+            style={{
+              transform: [{ rotate: isExpanded ? '180deg' : '0deg' }],
+            }}
+          />
+        </TouchableOpacity>
+
+        <View style={styles.orderInfo}>
+          <View style={styles.infoRow}>
+            <User size={16} color={Colors.light.textLight} />
+            <Text style={styles.infoText}>{order.customerName}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Phone size={16} color={Colors.light.textLight} />
+            <Text style={styles.infoText}>{order.contact}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <MapPin size={16} color={Colors.light.textLight} />
+            <Text style={styles.infoText}>{order.address}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Clock size={16} color={Colors.light.textLight} />
+            <Text style={styles.infoText}>{formatDate(order.createdAt)}</Text>
+          </View>
+        </View>
+
+        {isExpanded && (
+          <>
+            <View style={styles.itemsSection}>
+              <Text style={styles.itemsTitle}>Artículos:</Text>
+              {order.items.map((item, index) => (
+                <View key={index} style={styles.itemRow}>
+                  <Text style={styles.itemName}>
+                    {item.name} × {item.quantity}
+                  </Text>
+                  <Text style={styles.itemPrice}>
+                    ${(item.price * item.quantity).toLocaleString('es-CO')}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.totalSection}>
+              <Text style={styles.totalLabel}>Total:</Text>
+              <Text style={styles.totalAmount}>
+                ${order.totalAmount.toLocaleString('es-CO')} {order.currency}
+              </Text>
+            </View>
+
+            <View style={styles.paymentInfo}>
+              <Text style={styles.paymentMethod}>
+                💳 {order.paymentMethod === 'tarjeta' ? 'Tarjeta' : 'Efectivo'}
+              </Text>
+              <Text style={styles.transactionId}>ID: {order.transactionId}</Text>
+            </View>
+
+            {order.notes && (
+              <View style={styles.notesSection}>
+                <Text style={styles.notesLabel}>Notas:</Text>
+                <Text style={styles.notesText}>{order.notes}</Text>
+              </View>
+            )}
+
+            {(isAdmin || isEmployee) && renderStatusButtons(order)}
+          </>
+        )}
+
+        {!isExpanded && (nextStatus || prevStatus) && (
+          <View style={styles.swipeHint}>
+            <Text style={styles.swipeHintText}>← Desliza para cambiar estado →</Text>
+          </View>
+        )}
+      </Animated.View>
+    );
+  });
+  MobileOrderCard.displayName = 'MobileOrderCard';
+
+  const renderTabletOrderCard = useCallback((order: Order) => {
     const isExpanded = expandedOrders.has(order.id);
     const statusConfig = STATUS_CONFIG[order.status];
 
@@ -361,8 +536,12 @@ export default function PedidosScreen() {
                 : `No hay pedidos con estado "${STATUS_CONFIG[selectedFilter as OrderStatus].label}"`}
             </Text>
           </View>
+        ) : isMobile ? (
+          filteredOrders.map((order) => <MobileOrderCard key={order.id} order={order} />)
         ) : (
-          filteredOrders.map(renderOrderCard)
+          <View style={styles.tabletGrid}>
+            {filteredOrders.map(renderTabletOrderCard)}
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -619,5 +798,43 @@ const styles = StyleSheet.create({
     color: Colors.light.textLight,
     marginTop: 8,
     textAlign: 'center',
+  },
+  tabletGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    zIndex: -1,
+  },
+  swipeIndicatorLeft: {
+    right: 0,
+    alignItems: 'flex-end',
+  },
+  swipeIndicatorRight: {
+    left: 0,
+    alignItems: 'flex-start',
+  },
+  swipeIndicatorText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  swipeHint: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+    alignItems: 'center',
+  },
+  swipeHintText: {
+    fontSize: 11,
+    color: Colors.light.textLight,
+    fontStyle: 'italic',
   },
 });
