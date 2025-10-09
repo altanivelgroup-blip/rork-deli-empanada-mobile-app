@@ -106,7 +106,7 @@ export default function EstadisticasScreen() {
   const [dailyNote, setDailyNote] = useState('');
   const [activeTab, setActiveTab] = useState<'pedidos' | 'estadisticas'>('estadisticas');
 
-  const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com';
+  const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com' || currentUser?.email === 'maria@deliempanada.com';
   const isMobile = width <= 800;
 
   useEffect(() => {
