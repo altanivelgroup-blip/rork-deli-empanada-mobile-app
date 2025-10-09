@@ -29,8 +29,6 @@ import {
 export default function EstadisticasScreen() {
   const { currentUser, orders, isLoading, isManager, logout } = useAdmin();
 
-  const isAdmin = currentUser?.email === 'maria@deliempanada.com' || isManager;
-
   const todayStats = useMemo(() => {
     const today = new Date();
     const todayOrders = orders.filter((order) => {
@@ -142,6 +140,17 @@ export default function EstadisticasScreen() {
     };
   }, [orders]);
 
+  useEffect(() => {
+    if (!currentUser) {
+      router.replace('/admin-login');
+      return;
+    }
+    if (currentUser.email !== 'maria@deliempanada.com') {
+      router.replace('/pedidos');
+      return;
+    }
+  }, [currentUser]);
+
   const formatCurrency = (amount: number) => {
     return `$ ${amount.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
@@ -164,18 +173,7 @@ export default function EstadisticasScreen() {
     );
   };
 
-  useEffect(() => {
-    if (!currentUser) {
-      router.replace('/admin-login');
-      return;
-    }
-    if (!isAdmin) {
-      router.replace('/pedidos');
-      return;
-    }
-  }, [currentUser, isAdmin]);
-
-  if (!currentUser || !isAdmin) {
+  if (!currentUser || currentUser.email !== 'maria@deliempanada.com') {
     return null;
   }
 

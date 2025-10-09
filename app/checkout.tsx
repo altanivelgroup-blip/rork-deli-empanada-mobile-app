@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,13 @@ export default function CheckoutScreen() {
     address: '',
     notes: '',
   });
+
+  useEffect(() => {
+    if (currentUser && currentUser.email !== 'maria@deliempanada.com') {
+      router.replace('/pedidos');
+      return;
+    }
+  }, [currentUser]);
 
   const handleSubmit = () => {
     if (!formData.name || !formData.phone) {

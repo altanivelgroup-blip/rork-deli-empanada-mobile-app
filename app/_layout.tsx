@@ -51,7 +51,8 @@ function RootLayoutNav() {
       <Stack.Screen 
         name="checkout" 
         options={{ 
-          title: "Finalizar Pedido"
+          title: "Finalizar Pedido",
+          headerShown: true
         }} 
       />
       <Stack.Screen 
