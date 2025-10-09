@@ -167,8 +167,11 @@ export default function EstadisticasScreen() {
   useEffect(() => {
     if (!currentUser) {
       router.replace('/admin-login');
-    } else if (!isAdmin) {
+      return;
+    }
+    if (!isAdmin) {
       router.replace('/pedidos');
+      return;
     }
   }, [currentUser, isAdmin]);
 

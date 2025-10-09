@@ -262,10 +262,10 @@ export default function PedidosScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const isAdmin = currentUser?.email === 'maria@deliempanada.com';
+  const isAdmin = currentUser?.role === 'manager' || currentUser?.email === 'maria@deliempanada.com';
   const isEmployee1 = currentUser?.email === 'employee1@deliempanada.com';
   const isEmployee2 = currentUser?.email === 'employee2@deliempanada.com';
-  const isEmployee = isEmployee1 || isEmployee2;
+  const isEmployee = currentUser?.role === 'kitchen' || isEmployee1 || isEmployee2;
   
   const userBranch = isEmployee1 ? 'Norte' : isEmployee2 ? 'Sur' : null;
 
