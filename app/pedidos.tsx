@@ -252,6 +252,99 @@ const generateTestOrders = (): Order[] => {
       status: 'delivered' as const,
       createdAt: new Date(now.getTime() - 220 * 60000),
       branch: 'viejo' as const
+    },
+    {
+      id: 'test_12',
+      userId: 'user_12',
+      customerName: 'Cliente Sur 1',
+      contact: '+57 300 111 2222',
+      address: 'Calle Sur 10 #20-30',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_19', name: 'Empanada de Carne', quantity: 4, price: 3500 },
+        { id: 'item_20', name: 'Coca Cola', quantity: 2, price: 2500 }
+      ],
+      totalAmount: 19000,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_012',
+      status: 'pending' as const,
+      createdAt: new Date(now.getTime() - 15 * 60000),
+      branch: 'nuevo' as const
+    },
+    {
+      id: 'test_13',
+      userId: 'user_13',
+      customerName: 'Cliente Sur 2',
+      contact: '+57 300 222 3333',
+      address: 'Carrera Sur 5 #15-25',
+      deliveryType: 'pickup' as const,
+      items: [
+        { id: 'item_21', name: 'Empanada de Pollo', quantity: 6, price: 3500 }
+      ],
+      totalAmount: 21000,
+      currency: 'COP',
+      paymentMethod: 'efectivo' as const,
+      transactionId: 'txn_013',
+      status: 'pending' as const,
+      createdAt: new Date(now.getTime() - 30 * 60000),
+      branch: 'nuevo' as const
+    },
+    {
+      id: 'test_14',
+      userId: 'user_14',
+      customerName: 'Cliente Sur 3',
+      contact: '+57 300 333 4444',
+      address: 'Avenida Sur 8 #12-18',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_22', name: 'Empanada de Pollo', quantity: 3, price: 3500 },
+        { id: 'item_23', name: 'Coca Cola', quantity: 3, price: 2500 }
+      ],
+      totalAmount: 18000,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_014',
+      status: 'preparing' as const,
+      createdAt: new Date(now.getTime() - 50 * 60000),
+      branch: 'nuevo' as const
+    },
+    {
+      id: 'test_15',
+      userId: 'user_15',
+      customerName: 'Cliente Sur 4',
+      contact: '+57 300 444 5555',
+      address: 'Calle Sur 22 #30-40',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_24', name: 'Empanada de Carne', quantity: 5, price: 3500 }
+      ],
+      totalAmount: 17500,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_015',
+      status: 'preparing' as const,
+      createdAt: new Date(now.getTime() - 70 * 60000),
+      branch: 'nuevo' as const
+    },
+    {
+      id: 'test_16',
+      userId: 'user_16',
+      customerName: 'Cliente Sur 5',
+      contact: '+57 300 555 6666',
+      address: 'Carrera Sur 15 #25-35',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_25', name: 'Empanada de Pollo', quantity: 2, price: 3500 },
+        { id: 'item_26', name: 'Coca Cola', quantity: 1, price: 2500 }
+      ],
+      totalAmount: 9500,
+      currency: 'COP',
+      paymentMethod: 'efectivo' as const,
+      transactionId: 'txn_016',
+      status: 'delivered' as const,
+      createdAt: new Date(now.getTime() - 150 * 60000),
+      branch: 'nuevo' as const
     }
   ];
 };
@@ -279,9 +372,20 @@ export default function PedidosScreen() {
       return;
     }
 
+    if (isEmployee && !userBranch) {
+      console.error('Employee without assigned branch');
+      router.replace('/admin-login');
+      return;
+    }
+
     if (!db) {
       console.warn('Firebase not configured - using test data');
-      setOrders(generateTestOrders());
+      const testOrders = generateTestOrders();
+      if (userBranch) {
+        setOrders(testOrders.filter(order => order.branch === userBranch));
+      } else {
+        setOrders(testOrders);
+      }
       setLoading(false);
       return;
     }
@@ -311,7 +415,12 @@ export default function PedidosScreen() {
         });
         
         if (ordersData.length === 0) {
-          setOrders(generateTestOrders());
+          const testOrders = generateTestOrders();
+          if (userBranch) {
+            setOrders(testOrders.filter(order => order.branch === userBranch));
+          } else {
+            setOrders(testOrders);
+          }
         } else {
           setOrders(ordersData);
         }
@@ -320,14 +429,19 @@ export default function PedidosScreen() {
       },
       (error) => {
         console.error('Error fetching orders:', error);
-        setOrders(generateTestOrders());
+        const testOrders = generateTestOrders();
+        if (userBranch) {
+          setOrders(testOrders.filter(order => order.branch === userBranch));
+        } else {
+          setOrders(testOrders);
+        }
         setLoading(false);
         setRefreshing(false);
       }
     );
 
     return () => unsubscribe();
-  }, [currentUser, isAdmin, userBranch]);
+  }, [currentUser, isAdmin, userBranch, isEmployee]);
 
   const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
     if (!db) return;
@@ -350,7 +464,12 @@ export default function PedidosScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
-      setOrders(generateTestOrders());
+      const testOrders = generateTestOrders();
+      if (userBranch) {
+        setOrders(testOrders.filter(order => order.branch === userBranch));
+      } else {
+        setOrders(testOrders);
+      }
       setRefreshing(false);
     }, 1000);
   };
@@ -414,7 +533,9 @@ export default function PedidosScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>DELI EMPANADA</Text>
-          <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
+          <Text style={styles.headerSubtitle}>
+            {isEmployee && userBranch ? `📍 Sucursal ${userBranch === 'viejo' ? 'Norte' : 'Sur'}` : '🍴 Panel de Gerencia'}
+          </Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>

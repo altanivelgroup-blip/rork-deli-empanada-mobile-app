@@ -225,15 +225,16 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
   const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; user?: Employee; error?: string }> => {
     // Mock login with role-based authentication
     const credentials = {
-      'maria@deliempanada.com': { password: 'admin123', role: 'manager' },
-      'employee1@deliempanada.com': { password: 'work123', role: 'kitchen' }
+      'maria@deliempanada.com': { password: 'admin123', role: 'manager', name: 'María González', id: 'mgr_1' },
+      'employee1@deliempanada.com': { password: 'work123', role: 'kitchen', name: 'Empleado Norte', id: 'emp_1' },
+      'employee2@deliempanada.com': { password: 'work123', role: 'kitchen', name: 'Empleado Sur', id: 'emp_2' }
     };
 
     const credential = credentials[email as keyof typeof credentials];
     if (credential && credential.password === password) {
       const employee: Employee = {
-        id: credential.role === 'manager' ? 'mgr_1' : 'emp_1',
-        name: credential.role === 'manager' ? 'María González' : 'Empleado 1',
+        id: credential.id,
+        name: credential.name,
         email: email,
         role: credential.role as 'kitchen' | 'manager',
         isActive: true,
