@@ -8,7 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { CheckCircle, Home } from 'lucide-react-native';
+import { CheckCircle, ShoppingBag, Package } from 'lucide-react-native';
 
 export default function ConfirmationScreen() {
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -30,8 +30,12 @@ export default function ConfirmationScreen() {
     ]).start();
   }, []);
 
-  const handleGoHome = () => {
-    router.replace('/');
+  const handleTakeAnotherOrder = () => {
+    router.push('/menu');
+  };
+
+  const handleBackToPedidos = () => {
+    router.push('/pedidos');
   };
 
   return (
@@ -69,13 +73,23 @@ export default function ConfirmationScreen() {
           </Text>
         </Animated.View>
 
-        <TouchableOpacity
-          style={styles.homeButton}
-          onPress={handleGoHome}
-        >
-          <Home size={24} color="#FFFFFF" />
-          <Text style={styles.homeButtonText}>Volver al Inicio</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.orderButton}
+            onPress={handleTakeAnotherOrder}
+          >
+            <ShoppingBag size={24} color="#FFFFFF" />
+            <Text style={styles.orderButtonText}>Tomar Otro Pedido</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.pedidosButton}
+            onPress={handleBackToPedidos}
+          >
+            <Package size={24} color="#CC0000" />
+            <Text style={styles.pedidosButtonText}>Volver a Pedidos</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -145,17 +159,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 40,
   },
-  homeButton: {
+  buttonContainer: {
+    width: '100%',
+    gap: 12,
+  },
+  orderButton: {
     flexDirection: 'row',
-    backgroundColor: '#CC0000',
+    backgroundColor: '#4CAF50',
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 25,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 10,
   },
-  homeButtonText: {
+  orderButtonText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  pedidosButton: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 2,
+    borderColor: '#CC0000',
+  },
+  pedidosButtonText: {
+    color: '#CC0000',
     fontSize: 16,
     fontWeight: 'bold',
   },
