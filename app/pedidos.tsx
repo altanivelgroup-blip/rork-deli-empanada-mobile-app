@@ -423,34 +423,14 @@ export default function PedidosScreen() {
         </View>
       </View>
 
-      {!isEmployee && (
-        <View style={styles.tabBar}>
-          <TouchableOpacity style={[styles.tab, styles.tabActive]}>
-            <Package size={18} color={Colors.light.primary} />
-            <Text style={[styles.tabText, styles.tabTextActive]}>
-              Pedidos ({orders.length})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.tab}
-            onPress={() => router.push('/estadisticas')}
-          >
-            <BarChart3 size={18} color={Colors.light.textLight} />
-            <Text style={styles.tabText}>
-              Estadísticas
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
-      {isEmployee && (
-        <View style={styles.employeeHeader}>
-          <Package size={18} color={Colors.light.primary} />
-          <Text style={styles.employeeHeaderText}>
-            Pedidos ({orders.length})
-          </Text>
-        </View>
-      )}
+
+      <View style={styles.employeeHeader}>
+        <Package size={18} color={Colors.light.primary} />
+        <Text style={styles.employeeHeaderText}>
+          Pedidos ({orders.length})
+        </Text>
+      </View>
 
       <View style={styles.summaryCards}>
         <View style={[styles.summaryCard, { backgroundColor: '#FFF5F5' }]}>
