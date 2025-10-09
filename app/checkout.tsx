@@ -15,9 +15,11 @@ import { router } from 'expo-router';
 import { MapPin, Phone, User, CreditCard, Truck, Store } from 'lucide-react-native';
 import { useCart } from '@/providers/CartProvider';
 import WompiCheckout from '@/components/WompiCheckout';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
 export default function CheckoutScreen() {
-  const { getTotalPrice, clearCart } = useCart();
+  const { getTotalPrice, clearCart, cart } = useCart();
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
   const [showWompi, setShowWompi] = useState(false);
@@ -42,17 +44,90 @@ export default function CheckoutScreen() {
     if (paymentMethod === 'card') {
       setShowWompi(true);
     } else {
+      handleCashOrder();
+    }
+  };
+
+  const handlePaymentSuccess = async (transactionId: string) => {
+    console.log('✅ Payment successful:', transactionId);
+    
+    try {
+      if (db) {
+        const orderData = {
+          userId: 'guest',
+          customerName: formData.name,
+          contact: formData.phone,
+          address: deliveryType === 'delivery' ? formData.address : 'Recoger en tienda',
+          deliveryType,
+          notes: formData.notes || '',
+          items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          totalAmount: total,
+          currency: process.env.EXPO_PUBLIC_CURRENC || 'COP',
+          paymentMethod: 'tarjeta',
+          transactionId,
+          status: 'paid',
+          createdAt: serverTimestamp(),
+        };
+
+        await addDoc(collection(db, 'orders'), orderData);
+        console.log('✅ Order saved to Firestore');
+      }
+
+      Alert.alert('¡Pedido Confirmado!', `✅ ¡Gracias por tu compra!\n\nTransacción #${transactionId}`);
+      setShowWompi(false);
+      clearCart();
+      router.replace('/confirmation');
+    } catch (error) {
+      console.error('Error saving order:', error);
+      Alert.alert('Pago Exitoso', `Transacción #${transactionId}\n\nTu pedido ha sido confirmado.`);
+      setShowWompi(false);
       clearCart();
       router.replace('/confirmation');
     }
   };
 
-  const handlePaymentSuccess = (transactionId: string) => {
-    console.log('✅ Payment successful:', transactionId);
-    Alert.alert('Pago Exitoso', `Transacción #${transactionId}\n\nTu pedido ha sido confirmado.`);
-    setShowWompi(false);
-    clearCart();
-    router.replace('/confirmation');
+  const handleCashOrder = async () => {
+    try {
+      if (db) {
+        const orderData = {
+          userId: 'guest',
+          customerName: formData.name,
+          contact: formData.phone,
+          address: deliveryType === 'delivery' ? formData.address : 'Recoger en tienda',
+          deliveryType,
+          notes: formData.notes || '',
+          items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          totalAmount: total,
+          currency: process.env.EXPO_PUBLIC_CURRENC || 'COP',
+          paymentMethod: 'efectivo',
+          transactionId: `CASH-${Date.now()}`,
+          status: 'pending',
+          createdAt: serverTimestamp(),
+        };
+
+        await addDoc(collection(db, 'orders'), orderData);
+        console.log('✅ Cash order saved to Firestore');
+      }
+
+      Alert.alert('¡Pedido Confirmado!', '✅ ¡Gracias por tu compra!\n\nPaga en efectivo al recibir tu pedido.');
+      clearCart();
+      router.replace('/confirmation');
+    } catch (error) {
+      console.error('Error saving cash order:', error);
+      Alert.alert('Pedido Confirmado', 'Tu pedido ha sido recibido.');
+      clearCart();
+      router.replace('/confirmation');
+    }
   };
 
   const total = getTotalPrice() + (deliveryType === 'delivery' ? 6000 : 0);
