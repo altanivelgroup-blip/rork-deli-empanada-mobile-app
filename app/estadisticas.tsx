@@ -129,20 +129,24 @@ export default function EstadisticasScreen() {
 
   useEffect(() => {
     if (!currentUser) {
+      console.log('❌ No current user, redirecting to login');
       router.replace('/admin-login');
       return;
     }
 
     if (!isAdmin) {
+      console.log('❌ User is not admin, redirecting to pedidos');
       router.replace('/pedidos');
       return;
     }
 
     if (!db) {
-      console.warn('Firebase not configured');
+      console.warn('⚠️ Firebase not configured');
       setLoading(false);
       return;
     }
+
+    console.log('✅ Fetching orders for branch:', selectedBranch);
 
     let q;
     if (selectedBranch === 'Todas') {
@@ -165,11 +169,12 @@ export default function EstadisticasScreen() {
             ...doc.data(),
           } as Order);
         });
+        console.log(`📊 Loaded ${ordersData.length} orders for ${selectedBranch}`);
         setOrders(ordersData);
         setLoading(false);
       },
       (error) => {
-        console.error('Error fetching orders:', error);
+        console.error('❌ Error fetching orders:', error);
         setLoading(false);
       }
     );
