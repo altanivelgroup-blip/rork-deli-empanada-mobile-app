@@ -423,14 +423,7 @@ export default function PedidosScreen() {
         </View>
       </View>
 
-      {isEmployee ? (
-        <View style={styles.employeeHeader}>
-          <Package size={18} color={Colors.light.primary} />
-          <Text style={styles.employeeHeaderText}>
-            Pedidos ({orders.length})
-          </Text>
-        </View>
-      ) : (
+      {!isEmployee && (
         <View style={styles.tabBar}>
           <TouchableOpacity style={[styles.tab, styles.tabActive]}>
             <Package size={18} color={Colors.light.primary} />
@@ -447,6 +440,15 @@ export default function PedidosScreen() {
               Estadísticas
             </Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {isEmployee && (
+        <View style={styles.employeeHeader}>
+          <Package size={18} color={Colors.light.primary} />
+          <Text style={styles.employeeHeaderText}>
+            Pedidos ({orders.length})
+          </Text>
         </View>
       )}
 
