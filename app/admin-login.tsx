@@ -35,6 +35,8 @@ export default function AdminLoginScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleLogin = async () => {
+    console.log('🔐 Login attempt:', { email, passwordLength: password.length });
+    
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Por favor ingresa email y contraseña');
       return;
@@ -43,38 +45,45 @@ export default function AdminLoginScreen() {
     setIsLoading(true);
     try {
       const emailLower = email.trim().toLowerCase();
+      console.log('🔍 Checking credentials for:', emailLower);
       
       if (emailLower === 'maria@deliempanada.com' && password === 'admin123') {
+        console.log('✅ Owner credentials matched');
         await AsyncStorage.setItem('userRole', 'admin');
         await AsyncStorage.setItem('userEmail', emailLower);
-        console.log('✅ Owner logged in');
+        console.log('✅ Owner logged in, navigating to estadisticas');
         router.replace('/estadisticas');
       } else if (emailLower === 'employee1' || emailLower === 'employee1@deliempanada.com') {
+        console.log('🔍 Employee1 detected, checking password');
         if (password === 'work123') {
           await AsyncStorage.setItem('userRole', 'employee');
           await AsyncStorage.setItem('userEmail', 'employee1@deliempanada.com');
           await AsyncStorage.setItem('userBranch', 'Norte');
-          console.log('✅ Employee Norte logged in');
+          console.log('✅ Employee Norte logged in, navigating to pedidos');
           router.replace('/pedidos?branch=Norte');
         } else {
+          console.log('❌ Wrong password for employee1');
           Alert.alert('Error', 'Contraseña incorrecta');
         }
       } else if (emailLower === 'employee2' || emailLower === 'employee2@deliempanada.com') {
+        console.log('🔍 Employee2 detected, checking password');
         if (password === 'work123') {
           await AsyncStorage.setItem('userRole', 'employee');
           await AsyncStorage.setItem('userEmail', 'employee2@deliempanada.com');
           await AsyncStorage.setItem('userBranch', 'Sur');
-          console.log('✅ Employee Sur logged in');
+          console.log('✅ Employee Sur logged in, navigating to pedidos');
           router.replace('/pedidos?branch=Sur');
         } else {
+          console.log('❌ Wrong password for employee2');
           Alert.alert('Error', 'Contraseña incorrecta');
         }
       } else {
+        console.log('❌ No matching credentials found');
         Alert.alert('Error', 'Credenciales inválidas');
       }
     } catch (error) {
       console.error('❌ Error during login:', error);
-      Alert.alert('Error', 'Error al iniciar sesión');
+      Alert.alert('Error', 'Error al iniciar sesión: ' + (error as Error).message);
     } finally {
       setIsLoading(false);
     }
