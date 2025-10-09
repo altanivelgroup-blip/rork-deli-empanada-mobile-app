@@ -39,7 +39,6 @@ interface UserContext {
 export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
@@ -57,22 +56,7 @@ export default function HomeScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [fadeAnim, scaleAnim, pulseAnim]);
+  }, [fadeAnim, scaleAnim]);
 
   const handleLongPressStart = () => {
     const timer = setTimeout(() => {
@@ -132,14 +116,7 @@ export default function HomeScreen() {
           onPressIn={handleLongPressStart}
           onPressOut={handleLongPressEnd}
         >
-          <Animated.View
-            style={[
-              styles.logoBadge,
-              {
-                transform: [{ scale: pulseAnim }],
-              },
-            ]}
-          >
+          <View style={styles.logoBadge}>
             <Image
               source={{
                 uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/ymk4xvks1kuz0it56htjb',
@@ -147,7 +124,7 @@ export default function HomeScreen() {
               style={styles.logoImage}
               resizeMode="contain"
             />
-          </Animated.View>
+          </View>
         </Pressable>
 
         <Text style={styles.title}>DELI</Text>
