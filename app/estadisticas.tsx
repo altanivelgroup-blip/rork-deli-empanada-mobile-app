@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -164,13 +164,15 @@ export default function EstadisticasScreen() {
     );
   };
 
-  if (!currentUser) {
-    router.replace('/admin-login');
-    return null;
-  }
+  useEffect(() => {
+    if (!currentUser) {
+      router.replace('/admin-login');
+    } else if (!isAdmin) {
+      router.replace('/pedidos');
+    }
+  }, [currentUser, isAdmin]);
 
-  if (!isAdmin) {
-    router.replace('/pedidos');
+  if (!currentUser || !isAdmin) {
     return null;
   }
 
