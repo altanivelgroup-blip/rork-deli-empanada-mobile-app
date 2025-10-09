@@ -26,6 +26,11 @@ const AsyncStorage = {
       localStorage.setItem(key, value);
     }
   },
+  removeItem: async (key: string): Promise<void> => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(key);
+    }
+  },
 };
 
 export default function AdminLoginScreen() {
@@ -44,11 +49,31 @@ export default function AdminLoginScreen() {
 
     setIsLoading(true);
     try {
+      await AsyncStorage.removeItem('admin_current_user');
+      await AsyncStorage.removeItem('userRole');
+      await AsyncStorage.removeItem('userEmail');
+      await AsyncStorage.removeItem('userBranch');
+      
       const emailLower = email.trim().toLowerCase();
       console.log('🔍 Checking credentials for:', emailLower);
       
       if (emailLower === 'maria@deliempanada.com' && password === 'admin123') {
         console.log('✅ Owner credentials matched');
+        const user = {
+          id: 'mgr_1',
+          name: 'María González',
+          email: 'maria@deliempanada.com',
+          role: 'manager',
+          isActive: true,
+          permissions: {
+            viewOrders: true,
+            manageOrders: true,
+            viewAnalytics: true,
+            viewRevenue: true,
+            manageEmployees: true
+          }
+        };
+        await AsyncStorage.setItem('admin_current_user', JSON.stringify(user));
         await AsyncStorage.setItem('userRole', 'admin');
         await AsyncStorage.setItem('userEmail', emailLower);
         console.log('✅ Owner logged in, navigating to estadisticas');
@@ -56,6 +81,21 @@ export default function AdminLoginScreen() {
       } else if (emailLower === 'employee1' || emailLower === 'employee1@deliempanada.com') {
         console.log('🔍 Employee1 detected, checking password');
         if (password === 'work123') {
+          const user = {
+            id: 'emp_1',
+            name: 'Empleado Norte',
+            email: 'employee1@deliempanada.com',
+            role: 'kitchen',
+            isActive: true,
+            permissions: {
+              viewOrders: true,
+              manageOrders: true,
+              viewAnalytics: false,
+              viewRevenue: false,
+              manageEmployees: false
+            }
+          };
+          await AsyncStorage.setItem('admin_current_user', JSON.stringify(user));
           await AsyncStorage.setItem('userRole', 'employee');
           await AsyncStorage.setItem('userEmail', 'employee1@deliempanada.com');
           await AsyncStorage.setItem('userBranch', 'Norte');
@@ -68,6 +108,21 @@ export default function AdminLoginScreen() {
       } else if (emailLower === 'employee2' || emailLower === 'employee2@deliempanada.com') {
         console.log('🔍 Employee2 detected, checking password');
         if (password === 'work123') {
+          const user = {
+            id: 'emp_2',
+            name: 'Empleado Sur',
+            email: 'employee2@deliempanada.com',
+            role: 'kitchen',
+            isActive: true,
+            permissions: {
+              viewOrders: true,
+              manageOrders: true,
+              viewAnalytics: false,
+              viewRevenue: false,
+              manageEmployees: false
+            }
+          };
+          await AsyncStorage.setItem('admin_current_user', JSON.stringify(user));
           await AsyncStorage.setItem('userRole', 'employee');
           await AsyncStorage.setItem('userEmail', 'employee2@deliempanada.com');
           await AsyncStorage.setItem('userBranch', 'Sur');
