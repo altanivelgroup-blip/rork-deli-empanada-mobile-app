@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
-import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useAdmin } from '@/providers/AdminProvider';
 import Colors from '@/constants/colors';
@@ -25,6 +25,7 @@ import {
   Bell,
   LogOut,
   Target,
+  Calendar,
 } from 'lucide-react-native';
 
 interface Order {
@@ -109,41 +110,21 @@ export default function EstadisticasScreen() {
     const revenue = completedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
     const averageOrderValue = completedOrders.length > 0 ? revenue / completedOrders.length : 0;
 
-    const itemCounts: { [key: string]: number } = {};
+    const itemCounts: { [key: string]: { quantity: number; revenue: number } } = {};
     completedOrders.forEach((order) => {
       order.items.forEach((item) => {
-        itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+        if (!itemCounts[item.name]) {
+          itemCounts[item.name] = { quantity: 0, revenue: 0 };
+        }
+        itemCounts[item.name].quantity += item.quantity;
+        itemCounts[item.name].revenue += item.quantity * item.price;
       });
     });
 
     const topProducts = Object.entries(itemCounts)
-      .map(([name, quantity]) => ({ name, quantity }))
+      .map(([name, data]) => ({ name, quantity: data.quantity, revenue: data.revenue }))
       .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 3);
-
-    const hourCounts: { [hour: number]: number } = {};
-    todayOrders.forEach((order) => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
-      const hour = orderDate.getHours();
-      hourCounts[hour] = (hourCounts[hour] || 0) + 1;
-    });
-
-    const peakHour = Object.entries(hourCounts)
-      .sort(([, a], [, b]) => b - a)[0];
-
-    const peakHourRange = peakHour
-      ? `${peakHour[0]}:00 - ${parseInt(peakHour[0]) + 1}:00`
-      : 'N/A';
-
-    const dayCounts: { [day: string]: number } = {};
-    todayOrders.forEach((order) => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
-      const dayName = orderDate.toLocaleDateString('es-ES', { weekday: 'long' });
-      dayCounts[dayName] = (dayCounts[dayName] || 0) + 1;
-    });
-
-    const bestDay = Object.entries(dayCounts)
-      .sort(([, a], [, b]) => b - a)[0];
+      .slice(0, 5);
 
     return {
       revenue,
@@ -244,6 +225,8 @@ export default function EstadisticasScreen() {
     );
   }
 
+  const pendingOrdersCount = orders.filter(o => ['pending', 'paid', 'preparing', 'out_for_delivery'].includes(o.status)).length;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -271,7 +254,7 @@ export default function EstadisticasScreen() {
         >
           <Package size={18} color={Colors.light.textLight} />
           <Text style={styles.tabText}>
-            Pedidos ({orders.filter(o => ['pending', 'paid', 'preparing', 'out_for_delivery'].includes(o.status)).length})
+            Pedidos ({pendingOrdersCount})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -287,108 +270,68 @@ export default function EstadisticasScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <Text style={styles.sectionTitle}>📊 Estadísticas de Hoy</Text>
-        <View style={styles.kpiGrid}>
-          <View style={[styles.kpiCardLarge, { borderLeftColor: Colors.light.success }]}>
-            <View style={styles.kpiIconContainer}>
-              <DollarSign size={24} color={Colors.light.success} />
-            </View>
-            <View style={styles.kpiContent}>
-              <Text style={styles.kpiValue}>{formatCurrency(todayStats.revenue)}</Text>
-              <Text style={styles.kpiTitle}>Ingresos Hoy</Text>
-            </View>
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { borderLeftColor: Colors.light.success }]}>
+            <DollarSign size={20} color={Colors.light.success} />
+            <Text style={styles.statValue}>{formatCurrency(todayStats.revenue)}</Text>
+            <Text style={styles.statLabel}>Ingresos Hoy</Text>
           </View>
-          <View style={[styles.kpiCardLarge, { borderLeftColor: '#2196F3' }]}>
-            <View style={styles.kpiIconContainer}>
-              <CheckCircle size={24} color="#2196F3" />
-            </View>
-            <View style={styles.kpiContent}>
-              <Text style={styles.kpiValue}>{todayStats.completedOrders}</Text>
-              <Text style={styles.kpiTitle}>Pedidos Completados</Text>
-            </View>
+          <View style={[styles.statCard, { borderLeftColor: '#2196F3' }]}>
+            <CheckCircle size={20} color="#2196F3" />
+            <Text style={styles.statValue}>{todayStats.completedOrders}</Text>
+            <Text style={styles.statLabel}>Pedidos Completados</Text>
           </View>
-          <View style={[styles.kpiCardLarge, { borderLeftColor: Colors.light.warning }]}>
-            <View style={styles.kpiIconContainer}>
-              <Clock size={24} color={Colors.light.warning} />
-            </View>
-            <View style={styles.kpiContent}>
-              <Text style={styles.kpiValue}>{todayStats.pendingOrders}</Text>
-              <Text style={styles.kpiTitle}>Pedidos Pendientes</Text>
-            </View>
+          <View style={[styles.statCard, { borderLeftColor: Colors.light.warning }]}>
+            <Clock size={20} color={Colors.light.warning} />
+            <Text style={styles.statValue}>{todayStats.pendingOrders}</Text>
+            <Text style={styles.statLabel}>Pedidos Pendientes</Text>
           </View>
-          <View style={[styles.kpiCardLarge, { borderLeftColor: '#9C27B0' }]}>
-            <View style={styles.kpiIconContainer}>
-              <TrendingUp size={24} color="#9C27B0" />
-            </View>
-            <View style={styles.kpiContent}>
-              <Text style={styles.kpiValue}>{formatCurrency(todayStats.averageOrderValue)}</Text>
-              <Text style={styles.kpiTitle}>Valor Promedio</Text>
-            </View>
+          <View style={[styles.statCard, { borderLeftColor: '#9C27B0' }]}>
+            <TrendingUp size={20} color="#9C27B0" />
+            <Text style={styles.statValue}>{formatCurrency(todayStats.averageOrderValue)}</Text>
+            <Text style={styles.statLabel}>Valor Promedio</Text>
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>📈 Resumen Semanal</Text>
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryIconContainer}>
-              <BarChart3 size={24} color={Colors.light.success} />
-            </View>
-            <View style={styles.summaryTextContainer}>
-              <Text style={styles.summaryValue}>{formatCurrency(weeklyStats.revenue)}</Text>
-              <Text style={styles.summaryLabel}>Ingresos Semana</Text>
-            </View>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryCard}>
+            <BarChart3 size={20} color={Colors.light.success} />
+            <Text style={styles.summaryValue}>{formatCurrency(weeklyStats.revenue)}</Text>
+            <Text style={styles.summaryLabel}>Ingresos Semana</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryIconContainer}>
-              <TrendingUp size={24} color={Colors.light.success} />
-            </View>
-            <View style={styles.summaryTextContainer}>
-              <Text style={[styles.summaryValue, { color: Colors.light.success }]}>
-                {weeklyStats.growth >= 0 ? '+' : ''}{weeklyStats.growth.toFixed(1)}%
-              </Text>
-              <Text style={styles.summaryLabel}>Crecimiento</Text>
-            </View>
+          <View style={styles.summaryCard}>
+            <TrendingUp size={20} color={Colors.light.success} />
+            <Text style={[styles.summaryValue, { color: Colors.light.success }]}>
+              {weeklyStats.growth >= 0 ? '+' : ''}{weeklyStats.growth.toFixed(1)}%
+            </Text>
+            <Text style={styles.summaryLabel}>Crecimiento</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryIconContainer}>
-              <Package size={24} color={Colors.light.warning} />
-            </View>
-            <View style={styles.summaryTextContainer}>
-              <Text style={styles.summaryValue}>{weeklyStats.bestDayName}</Text>
-              <Text style={styles.summaryLabel}>Mejor Día</Text>
-            </View>
+          <View style={styles.summaryCard}>
+            <Calendar size={20} color={Colors.light.warning} />
+            <Text style={styles.summaryValue}>{weeklyStats.bestDayName}</Text>
+            <Text style={styles.summaryLabel}>Mejor Día</Text>
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>📅 Resumen Mensual</Text>
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryIconContainer}>
-              <DollarSign size={24} color={Colors.light.success} />
-            </View>
-            <View style={styles.summaryTextContainer}>
-              <Text style={styles.summaryValue}>{formatCurrency(monthlyStats.revenue)}</Text>
-              <Text style={styles.summaryLabel}>Ingresos del Mes</Text>
-            </View>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryCard}>
+            <DollarSign size={20} color={Colors.light.success} />
+            <Text style={styles.summaryValue}>{formatCurrency(monthlyStats.revenue)}</Text>
+            <Text style={styles.summaryLabel}>Ingresos del Mes</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryIconContainer}>
-              <TrendingUp size={24} color={Colors.light.success} />
-            </View>
-            <View style={styles.summaryTextContainer}>
-              <Text style={[styles.summaryValue, { color: Colors.light.success }]}>
-                {monthlyStats.growth >= 0 ? '+' : ''}{monthlyStats.growth.toFixed(1)}%
-              </Text>
-              <Text style={styles.summaryLabel}>Crecimiento Mensual</Text>
-            </View>
+          <View style={styles.summaryCard}>
+            <TrendingUp size={20} color={Colors.light.success} />
+            <Text style={[styles.summaryValue, { color: Colors.light.success }]}>
+              {monthlyStats.growth >= 0 ? '+' : ''}{monthlyStats.growth.toFixed(1)}%
+            </Text>
+            <Text style={styles.summaryLabel}>Crecimiento Mensual</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryIconContainer}>
-              <Target size={24} color="#2196F3" />
-            </View>
-            <View style={styles.summaryTextContainer}>
-              <Text style={styles.summaryValue}>{monthlyStats.goalPercentage}%</Text>
-              <Text style={styles.summaryLabel}>Meta del Mes</Text>
-            </View>
+          <View style={styles.summaryCard}>
+            <Target size={20} color="#2196F3" />
+            <Text style={styles.summaryValue}>{monthlyStats.goalPercentage}%</Text>
+            <Text style={styles.summaryLabel}>Meta del Mes</Text>
           </View>
         </View>
 
@@ -403,7 +346,7 @@ export default function EstadisticasScreen() {
                 <View style={styles.productInfo}>
                   <Text style={styles.productName}>{product.name}</Text>
                   <Text style={styles.productStats}>
-                    {product.quantity} vendidos • {formatCurrency((product.quantity * 3500))}
+                    {product.quantity} vendidos • {formatCurrency(product.revenue)}
                   </Text>
                 </View>
               </View>
@@ -448,7 +391,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     color: Colors.light.background,
   },
   headerSubtitle: {
@@ -485,14 +428,13 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.light.textLight,
   },
   tabTextActive: {
     color: Colors.light.primary,
-    fontWeight: '700',
+    fontWeight: '700' as const,
   },
-
   content: {
     flex: 1,
   },
@@ -500,179 +442,89 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '700' as const,
     color: Colors.light.text,
     marginTop: 16,
     marginBottom: 12,
   },
-  kpiGrid: {
+  statsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
-  kpiCard: {
+  statCard: {
     flex: 1,
     minWidth: 150,
     backgroundColor: Colors.light.background,
-    borderRadius: 8,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-      web: {
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-      },
-    }),
-  },
-  kpiCardLarge: {
-    flex: 1,
-    minWidth: 200,
-    backgroundColor: Colors.light.background,
     borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
+    padding: 16,
     alignItems: 'center',
-    gap: 16,
+    gap: 8,
     borderLeftWidth: 4,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.08,
         shadowRadius: 4,
       },
       android: {
-        elevation: 3,
+        elevation: 2,
       },
       web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
       },
     }),
   },
-  kpiIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.light.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  kpiContent: {
-    flex: 1,
-  },
-  kpiTitle: {
-    fontSize: 11,
-    color: Colors.light.textLight,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  kpiValue: {
-    fontSize: 16,
-    fontWeight: '700',
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700' as const,
     color: Colors.light.text,
   },
-  kpiSubtitle: {
+  statLabel: {
     fontSize: 11,
     color: Colors.light.textLight,
-    marginTop: 2,
-  },
-  summaryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.light.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  summaryTextContainer: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  trendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  trendText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  summaryCard: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-      web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      },
-    }),
+    fontWeight: '500' as const,
+    textAlign: 'center',
   },
   summaryRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: 12,
   },
-  summaryLabel: {
-    fontSize: 12,
-    color: Colors.light.textLight,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.light.text,
-  },
-  peakCard: {
+  summaryCard: {
+    flex: 1,
     backgroundColor: Colors.light.background,
     borderRadius: 12,
-    padding: 24,
+    padding: 16,
     alignItems: 'center',
     gap: 8,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.08,
         shadowRadius: 4,
       },
       android: {
-        elevation: 3,
+        elevation: 2,
       },
       web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
       },
     }),
   },
-  peakTime: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.light.primary,
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: Colors.light.text,
+    textAlign: 'center',
   },
-  peakLabel: {
-    fontSize: 14,
+  summaryLabel: {
+    fontSize: 11,
     color: Colors.light.textLight,
+    fontWeight: '500' as const,
+    textAlign: 'center',
   },
   topProductsCard: {
     backgroundColor: Colors.light.background,
@@ -683,14 +535,14 @@ const styles = StyleSheet.create({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.08,
         shadowRadius: 4,
       },
       android: {
-        elevation: 3,
+        elevation: 2,
       },
       web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
       },
     }),
   },
@@ -709,7 +561,7 @@ const styles = StyleSheet.create({
   },
   productRankText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: Colors.light.background,
   },
   productInfo: {
@@ -717,36 +569,19 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: Colors.light.text,
     marginBottom: 4,
   },
   productStats: {
     fontSize: 12,
     color: Colors.light.textLight,
-    fontWeight: '500',
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: Colors.light.surface,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  productQuantity: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.light.text,
-    minWidth: 40,
-    textAlign: 'right',
+    fontWeight: '500' as const,
   },
   emptyText: {
     fontSize: 14,
     color: Colors.light.textLight,
     textAlign: 'center',
-    fontStyle: 'italic',
+    fontStyle: 'italic' as const,
   },
 });
