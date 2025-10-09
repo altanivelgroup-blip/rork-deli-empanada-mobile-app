@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import BranchToggle from '@/components/BranchToggle';
+
+type Branch = 'Todas' | 'Norte' | 'Sur';
 import {
   View,
   Text,
@@ -67,6 +70,7 @@ export default function PedidosScreen() {
   const [selectedFilter, setSelectedFilter] = useState<OrderStatus | 'all'>('all');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [previousOrderCount, setPreviousOrderCount] = useState(0);
+  const [selectedBranch, setSelectedBranch] = useState<Branch>('Todas');
   const newOrderAnimation = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
@@ -93,7 +97,15 @@ export default function PedidosScreen() {
 
     let q;
     if (isAdmin) {
-      q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
+      if (selectedBranch === 'Todas') {
+        q = query(collection(db, 'pedidos'), orderBy('createdAt', 'desc'));
+      } else {
+        q = query(
+          collection(db, 'pedidos'),
+          where('branch', '==', selectedBranch),
+          orderBy('createdAt', 'desc')
+        );
+      }
     } else if (userBranch) {
       q = query(
         collection(db, 'pedidos'),
@@ -139,7 +151,7 @@ export default function PedidosScreen() {
     );
 
     return () => unsubscribe();
-  }, [currentUser, isAdmin, userBranch, previousOrderCount]);
+  }, [currentUser, isAdmin, userBranch, previousOrderCount, selectedBranch]);
 
   const playNewOrderAnimation = useCallback(() => {
     Animated.sequence([
@@ -570,6 +582,16 @@ export default function PedidosScreen() {
         </Animated.View>
       </Animated.View>
 
+      {isAdmin && (
+        <View style={styles.adminControls}>
+          <BranchToggle
+            selectedBranch={selectedBranch}
+            onBranchChange={setSelectedBranch}
+            disabled={false}
+          />
+        </View>
+      )}
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -968,5 +990,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.light.textLight,
     fontStyle: 'italic',
+  },
+  adminControls: {
+    backgroundColor: Colors.light.background,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
   },
 });

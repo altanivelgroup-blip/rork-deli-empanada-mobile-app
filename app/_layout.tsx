@@ -95,6 +95,13 @@ function RootLayoutNav() {
           headerShown: false
         }} 
       />
+      <Stack.Screen 
+        name="estadisticas" 
+        options={{ 
+          title: "Estadísticas",
+          headerShown: false
+        }} 
+      />
     </Stack>
   );
 }
