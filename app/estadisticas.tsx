@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   Platform,
   Modal,
+  TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
@@ -118,6 +119,7 @@ export default function EstadisticasScreen() {
   const [selectedBranch, setSelectedBranch] = useState<Branch>('Todas');
   const [exporting, setExporting] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [dailyNote, setDailyNote] = useState('');
 
   const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com';
   const isMobile = width <= 800;
@@ -281,10 +283,10 @@ export default function EstadisticasScreen() {
     };
   }, [orders]);
 
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async (note = '') => {
     setExporting(true);
     try {
-      const result = await exportDailyReport(orders, selectedBranch);
+      const result = await exportDailyReport(orders, selectedBranch, note);
       if (result.success) {
         Toast.show({
           type: 'success',
@@ -310,8 +312,9 @@ export default function EstadisticasScreen() {
 
   const handleConfirmExport = useCallback(() => {
     setConfirmVisible(false);
-    handleExport();
-  }, [handleExport]);
+    handleExport(dailyNote);
+    setDailyNote('');
+  }, [handleExport, dailyNote]);
 
   if (!currentUser || !isAdmin) {
     return null;
@@ -522,8 +525,19 @@ export default function EstadisticasScreen() {
             <Text style={styles.modalTitle}>
               ¿Deseas generar el informe de hoy?
             </Text>
+
+            <TextInput
+              placeholder="Notas del Día (opcional)"
+              placeholderTextColor="#888"
+              value={dailyNote}
+              onChangeText={setDailyNote}
+              multiline
+              numberOfLines={3}
+              style={styles.modalInput}
+            />
+
             <Text style={styles.modalMessage}>
-              Se generará el reporte de ventas del día y se abrirá la opción para compartirlo.
+              Se generará el reporte de ventas del día y podrás incluir una nota personalizada.
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -854,10 +868,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalMessage: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#555',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+    textAlignVertical: 'top',
+    fontSize: 14,
+    color: '#333',
+    minHeight: 80,
   },
   modalButtons: {
     flexDirection: 'row',

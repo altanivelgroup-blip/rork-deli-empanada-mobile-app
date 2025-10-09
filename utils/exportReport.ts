@@ -14,7 +14,7 @@ interface OrderData {
   branch?: string;
 }
 
-export async function exportDailyReport(orders: OrderData[], branch: string = 'Todas') {
+export async function exportDailyReport(orders: OrderData[], branch: string = 'Todas', note: string = '') {
   const today = new Date().toLocaleDateString('es-CO');
   const todayOrders = orders.filter((order) => {
     const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
@@ -41,8 +41,9 @@ export async function exportDailyReport(orders: OrderData[], branch: string = 'T
 📊 INFORME DIARIO - DELI EMPANADA
 📅 Fecha: ${today}
 🏪 Sucursal: ${branch}
+${note ? `📝 Nota: ${note}` : ''}
 
-💰 Ingresos Totales: $${totalRevenue.toLocaleString('es-CO')} COP
+💰 Ingresos Totales: ${totalRevenue.toLocaleString('es-CO')} COP
 ✅ Pedidos Completados: ${completedOrders}
 📦 Total Pedidos: ${todayOrders.length}
 
