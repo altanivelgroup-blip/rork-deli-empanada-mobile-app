@@ -482,7 +482,7 @@ export default function AdminDashboardScreen() {
           </Text>
         </TouchableOpacity>
         
-        {hasPermission('viewAnalytics') && (
+        {isManager && (
           <TouchableOpacity
             style={[styles.tab, selectedTab === 'analytics' && styles.activeTab]}
             onPress={() => setSelectedTab('analytics')}
