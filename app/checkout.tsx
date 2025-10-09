@@ -12,14 +12,16 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { MapPin, Phone, User, CreditCard, Truck, Store } from 'lucide-react-native';
+import { MapPin, Phone, User, CreditCard, Truck, Store, Package } from 'lucide-react-native';
 import { useCart } from '@/providers/CartProvider';
+import { useAdmin } from '@/providers/AdminProvider';
 import WompiCheckout from '@/components/WompiCheckout';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
 export default function CheckoutScreen() {
   const { getTotalPrice, clearCart, cart } = useCart();
+  const { currentUser } = useAdmin();
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
   const [showWompi, setShowWompi] = useState(false);
@@ -280,6 +282,17 @@ export default function CheckoutScreen() {
           >
             <Text style={styles.submitButtonText}>Confirmar Pedido</Text>
           </TouchableOpacity>
+          
+          {currentUser && (
+            <TouchableOpacity
+              style={styles.pedidosButton}
+              onPress={() => router.push('/pedidos')}
+              activeOpacity={0.9}
+            >
+              <Package size={24} color="#FFFFFF" />
+              <Text style={styles.pedidosButtonText}>Pedidos</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
 
@@ -439,5 +452,25 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  pedidosButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 25,
+    paddingVertical: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  pedidosButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
