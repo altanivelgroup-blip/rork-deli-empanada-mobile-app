@@ -12,7 +12,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { MapPin, Phone, User, CreditCard, Truck, Store, Package } from 'lucide-react-native';
+import { MapPin, Phone, User, CreditCard, Truck, Store, Package, Building2 } from 'lucide-react-native';
 import { useCart } from '@/providers/CartProvider';
 import { useAdmin } from '@/providers/AdminProvider';
 import WompiCheckout from '@/components/WompiCheckout';
@@ -25,6 +25,7 @@ export default function CheckoutScreen() {
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
   const [showWompi, setShowWompi] = useState(false);
+  const [branch, setBranch] = useState<'viejo' | 'nuevo'>('viejo');
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -61,6 +62,7 @@ export default function CheckoutScreen() {
           contact: formData.phone,
           address: deliveryType === 'delivery' ? formData.address : 'Recoger en tienda',
           deliveryType,
+          branch,
           notes: formData.notes || '',
           items: cart.map(item => ({
             id: item.id,
@@ -102,6 +104,7 @@ export default function CheckoutScreen() {
           contact: formData.phone,
           address: deliveryType === 'delivery' ? formData.address : 'Recoger en tienda',
           deliveryType,
+          branch,
           notes: formData.notes || '',
           items: cart.map(item => ({
             id: item.id,
@@ -176,6 +179,43 @@ export default function CheckoutScreen() {
                   Recoger
                 </Text>
                 <Text style={styles.deliveryFee}>Gratis</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Seleccionar Ubicación</Text>
+            <View style={styles.branchOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.branchOption,
+                  branch === 'viejo' && styles.branchOptionActive,
+                ]}
+                onPress={() => setBranch('viejo')}
+              >
+                <Building2 size={24} color={branch === 'viejo' ? '#CC0000' : '#666666'} />
+                <Text style={[
+                  styles.branchOptionText,
+                  branch === 'viejo' && styles.branchOptionTextActive,
+                ]}>
+                  Viejo
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.branchOption,
+                  branch === 'nuevo' && styles.branchOptionActive,
+                ]}
+                onPress={() => setBranch('nuevo')}
+              >
+                <Building2 size={24} color={branch === 'nuevo' ? '#CC0000' : '#666666'} />
+                <Text style={[
+                  styles.branchOptionText,
+                  branch === 'nuevo' && styles.branchOptionTextActive,
+                ]}>
+                  Nuevo
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -472,5 +512,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  branchOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  branchOption: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#EEEEEE',
+  },
+  branchOptionActive: {
+    borderColor: '#CC0000',
+    backgroundColor: '#FFF5F5',
+  },
+  branchOptionText: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 8,
+    fontWeight: '600',
+  },
+  branchOptionTextActive: {
+    color: '#CC0000',
   },
 });

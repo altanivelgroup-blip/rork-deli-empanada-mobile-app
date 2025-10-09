@@ -42,7 +42,7 @@ interface Order {
   transactionId: string;
   status: OrderStatus;
   createdAt: any;
-  branch?: 'Norte' | 'Sur';
+  branch?: 'viejo' | 'nuevo';
 }
 
 const generateTestOrders = (): Order[] => {
@@ -65,7 +65,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_001',
       status: 'pending' as const,
       createdAt: new Date(now.getTime() - 20 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_2',
@@ -84,7 +84,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_002',
       status: 'pending' as const,
       createdAt: new Date(now.getTime() - 40 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_3',
@@ -103,7 +103,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_003',
       status: 'pending' as const,
       createdAt: new Date(now.getTime() - 60 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_4',
@@ -121,7 +121,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_004',
       status: 'preparing' as const,
       createdAt: new Date(now.getTime() - 80 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_5',
@@ -140,7 +140,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_005',
       status: 'preparing' as const,
       createdAt: new Date(now.getTime() - 100 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_6',
@@ -158,7 +158,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_006',
       status: 'preparing' as const,
       createdAt: new Date(now.getTime() - 120 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_7',
@@ -177,7 +177,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_007',
       status: 'preparing' as const,
       createdAt: new Date(now.getTime() - 140 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_8',
@@ -195,7 +195,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_008',
       status: 'delivered' as const,
       createdAt: new Date(now.getTime() - 160 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_9',
@@ -214,7 +214,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_009',
       status: 'delivered' as const,
       createdAt: new Date(now.getTime() - 180 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_10',
@@ -233,7 +233,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_010',
       status: 'delivered' as const,
       createdAt: new Date(now.getTime() - 200 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     },
     {
       id: 'test_11',
@@ -251,7 +251,7 @@ const generateTestOrders = (): Order[] => {
       transactionId: 'txn_011',
       status: 'delivered' as const,
       createdAt: new Date(now.getTime() - 220 * 60000),
-      branch: 'Norte' as const
+      branch: 'viejo' as const
     }
   ];
 };
@@ -267,7 +267,7 @@ export default function PedidosScreen() {
   const isEmployee2 = currentUser?.email === 'employee2@deliempanada.com';
   const isEmployee = currentUser?.role === 'kitchen' || isEmployee1 || isEmployee2;
   
-  const userBranch = isEmployee1 ? 'Norte' : isEmployee2 ? 'Sur' : null;
+  const userBranch = isEmployee1 ? 'viejo' : isEmployee2 ? 'nuevo' : null;
 
   console.log('Current user:', currentUser?.email);
   console.log('Is employee:', isEmployee);
@@ -471,6 +471,13 @@ export default function PedidosScreen() {
                   <View style={styles.orderHeaderLeft}>
                     <Text style={styles.orderCustomer}>{order.customerName}</Text>
                     <Text style={styles.orderTime}>{formatTime(order.createdAt)}</Text>
+                    {order.branch && (
+                      <View style={styles.branchBadge}>
+                        <Text style={styles.branchBadgeText}>
+                          📍 {order.branch === 'viejo' ? 'Viejo' : 'Nuevo'}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <View style={styles.statusBadge}>
                     <Text style={styles.statusBadgeText}>Nuevo</Text>
@@ -545,6 +552,13 @@ export default function PedidosScreen() {
                   <View style={styles.orderHeaderLeft}>
                     <Text style={styles.orderCustomer}>{order.customerName}</Text>
                     <Text style={styles.orderTime}>{formatTime(order.createdAt)}</Text>
+                    {order.branch && (
+                      <View style={styles.branchBadge}>
+                        <Text style={styles.branchBadgeText}>
+                          📍 {order.branch === 'viejo' ? 'Viejo' : 'Nuevo'}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: '#FFF8E1' }]}>
                     <Text style={[styles.statusBadgeText, { color: '#FF9800' }]}>En Proceso</Text>
@@ -599,6 +613,13 @@ export default function PedidosScreen() {
                   <View style={styles.orderHeaderLeft}>
                     <Text style={styles.orderCustomer}>{order.customerName}</Text>
                     <Text style={styles.orderTime}>{formatTime(order.createdAt)}</Text>
+                    {order.branch && (
+                      <View style={styles.branchBadge}>
+                        <Text style={styles.branchBadgeText}>
+                          📍 {order.branch === 'viejo' ? 'Viejo' : 'Nuevo'}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: '#E8F5E9' }]}>
                     <Text style={[styles.statusBadgeText, { color: Colors.light.success }]}>Completado</Text>
@@ -922,5 +943,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: Colors.light.primary,
+  },
+  branchBadge: {
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  branchBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1976D2',
   },
 });
