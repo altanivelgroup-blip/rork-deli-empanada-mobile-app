@@ -3,11 +3,12 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { CartProvider } from "@/providers/CartProvider";
 import { AdminProvider } from "@/providers/AdminProvider";
 import { FirebaseProvider } from "@/providers/FirebaseProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import Toast from "react-native-toast-message";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -118,7 +119,10 @@ export default function RootLayout() {
           <FirebaseProvider>
             <AdminProvider>
               <CartProvider>
-                <RootLayoutNav />
+                <View style={styles.container}>
+                  <RootLayoutNav />
+                  <Toast />
+                </View>
               </CartProvider>
             </AdminProvider>
           </FirebaseProvider>

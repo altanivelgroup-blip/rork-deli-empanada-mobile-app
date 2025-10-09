@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import BranchToggle from '@/components/BranchToggle';
 import { exportDailyReport, formatCurrency, calculateGrowth } from '@/utils/exportReport';
+import Toast from 'react-native-toast-message';
 
 type Branch = 'Todas' | 'Norte' | 'Sur';
 
@@ -116,7 +117,7 @@ export default function EstadisticasScreen() {
   const [selectedBranch, setSelectedBranch] = useState<Branch>('Todas');
   const [exporting, setExporting] = useState(false);
 
-  const isAdmin = currentUser?.email === 'maria@deliempanada.com';
+  const isAdmin = currentUser?.email === 'lecabravomaya@gmail.com';
   const isMobile = width <= 800;
 
   useEffect(() => {
@@ -281,9 +282,25 @@ export default function EstadisticasScreen() {
   const handleExport = useCallback(async () => {
     setExporting(true);
     try {
-      await exportDailyReport(orders, selectedBranch);
+      const result = await exportDailyReport(orders, selectedBranch);
+      if (result.success) {
+        Toast.show({
+          type: 'success',
+          text1: 'Informe generado con éxito',
+          text2: 'El reporte fue exportado correctamente.',
+          position: 'bottom',
+        });
+      } else {
+        throw new Error('Export failed');
+      }
     } catch (error) {
-      console.error('Export failed:', error);
+      console.error('❌ Error exporting report:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error al generar el informe',
+        text2: 'Por favor intenta de nuevo.',
+        position: 'bottom',
+      });
     } finally {
       setExporting(false);
     }
@@ -331,11 +348,11 @@ export default function EstadisticasScreen() {
           disabled={exporting}
         >
           {exporting ? (
-            <ActivityIndicator size="small" color={Colors.light.background} />
+            <ActivityIndicator size="small" color={Colors.light.primary} />
           ) : (
             <>
-              <Download size={16} color={Colors.light.background} />
-              <Text style={styles.exportButtonText}>Exportar</Text>
+              <Download size={18} color={Colors.light.primary} />
+              <Text style={styles.exportButtonText}>Generar Informe Diario</Text>
             </>
           )}
         </TouchableOpacity>
@@ -546,8 +563,8 @@ const styles = StyleSheet.create({
   exportButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.accent,
-    paddingHorizontal: 16,
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     gap: 6,
@@ -557,8 +574,8 @@ const styles = StyleSheet.create({
   },
   exportButtonText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: Colors.light.background,
+    fontWeight: '600',
+    color: '#CC0000',
   },
   content: {
     flex: 1,
