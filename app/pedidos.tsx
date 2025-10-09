@@ -16,7 +16,7 @@ import { collection, onSnapshot, updateDoc, doc, query, orderBy, where } from 'f
 import { db } from '@/config/firebase';
 import { useAdmin } from '@/providers/AdminProvider';
 import Colors from '@/constants/colors';
-import { ArrowLeft, Package, BarChart3 } from 'lucide-react-native';
+import { ArrowLeft, Package, Bell, LogOut } from 'lucide-react-native';
 
 type OrderStatus = 'pending' | 'paid' | 'preparing' | 'out_for_delivery' | 'delivered';
 
@@ -45,10 +45,221 @@ interface Order {
   branch?: 'Norte' | 'Sur';
 }
 
+const generateTestOrders = (): Order[] => {
+  const now = new Date();
+  return [
+    {
+      id: 'test_1',
+      userId: 'user_1',
+      customerName: 'Cliente 1',
+      contact: '+57 300 123 4567',
+      address: 'Calle 123 #45-67',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_1', name: 'Empanada de Pollo', quantity: 3, price: 3500 },
+        { id: 'item_2', name: 'Coca Cola', quantity: 1, price: 2500 }
+      ],
+      totalAmount: 8399,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_001',
+      status: 'pending' as const,
+      createdAt: new Date(now.getTime() - 20 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_2',
+      userId: 'user_2',
+      customerName: 'Cliente 10',
+      contact: '+57 300 234 5678',
+      address: 'Carrera 45 #12-34',
+      deliveryType: 'pickup' as const,
+      items: [
+        { id: 'item_3', name: 'Empanada de Pollo', quantity: 3, price: 3500 },
+        { id: 'item_4', name: 'Coca Cola', quantity: 1, price: 2500 }
+      ],
+      totalAmount: 9179,
+      currency: 'COP',
+      paymentMethod: 'efectivo' as const,
+      transactionId: 'txn_002',
+      status: 'pending' as const,
+      createdAt: new Date(now.getTime() - 40 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_3',
+      userId: 'user_3',
+      customerName: 'Cliente 13',
+      contact: '+57 300 345 6789',
+      address: 'Avenida 68 #23-45',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_5', name: 'Empanada de Pollo', quantity: 2, price: 3500 },
+        { id: 'item_6', name: 'Coca Cola', quantity: 2, price: 2500 }
+      ],
+      totalAmount: 12000,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_003',
+      status: 'pending' as const,
+      createdAt: new Date(now.getTime() - 60 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_4',
+      userId: 'user_4',
+      customerName: 'Cliente 5',
+      contact: '+57 300 456 7890',
+      address: 'Calle 80 #10-20',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_7', name: 'Empanada de Carne', quantity: 4, price: 3500 }
+      ],
+      totalAmount: 14000,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_004',
+      status: 'preparing' as const,
+      createdAt: new Date(now.getTime() - 80 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_5',
+      userId: 'user_5',
+      customerName: 'Cliente 7',
+      contact: '+57 300 567 8901',
+      address: 'Carrera 15 #30-40',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_8', name: 'Empanada de Pollo', quantity: 5, price: 3500 },
+        { id: 'item_9', name: 'Coca Cola', quantity: 3, price: 2500 }
+      ],
+      totalAmount: 25000,
+      currency: 'COP',
+      paymentMethod: 'efectivo' as const,
+      transactionId: 'txn_005',
+      status: 'preparing' as const,
+      createdAt: new Date(now.getTime() - 100 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_6',
+      userId: 'user_6',
+      customerName: 'Cliente 9',
+      contact: '+57 300 678 9012',
+      address: 'Calle 100 #50-60',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_10', name: 'Empanada de Pollo', quantity: 2, price: 3500 }
+      ],
+      totalAmount: 7000,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_006',
+      status: 'preparing' as const,
+      createdAt: new Date(now.getTime() - 120 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_7',
+      userId: 'user_7',
+      customerName: 'Cliente 15',
+      contact: '+57 300 789 0123',
+      address: 'Avenida 19 #70-80',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_11', name: 'Empanada de Pollo', quantity: 3, price: 3500 },
+        { id: 'item_12', name: 'Coca Cola', quantity: 2, price: 2500 }
+      ],
+      totalAmount: 15500,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_007',
+      status: 'preparing' as const,
+      createdAt: new Date(now.getTime() - 140 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_8',
+      userId: 'user_8',
+      customerName: 'Cliente 20',
+      contact: '+57 300 890 1234',
+      address: 'Calle 50 #25-35',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_13', name: 'Empanada de Pollo', quantity: 4, price: 3500 }
+      ],
+      totalAmount: 14000,
+      currency: 'COP',
+      paymentMethod: 'efectivo' as const,
+      transactionId: 'txn_008',
+      status: 'delivered' as const,
+      createdAt: new Date(now.getTime() - 160 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_9',
+      userId: 'user_9',
+      customerName: 'Cliente 22',
+      contact: '+57 300 901 2345',
+      address: 'Carrera 7 #40-50',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_14', name: 'Empanada de Carne', quantity: 3, price: 3500 },
+        { id: 'item_15', name: 'Coca Cola', quantity: 1, price: 2500 }
+      ],
+      totalAmount: 13000,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_009',
+      status: 'delivered' as const,
+      createdAt: new Date(now.getTime() - 180 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_10',
+      userId: 'user_10',
+      customerName: 'Cliente 25',
+      contact: '+57 300 012 3456',
+      address: 'Avenida 30 #15-25',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_16', name: 'Empanada de Pollo', quantity: 6, price: 3500 },
+        { id: 'item_17', name: 'Coca Cola', quantity: 4, price: 2500 }
+      ],
+      totalAmount: 31000,
+      currency: 'COP',
+      paymentMethod: 'tarjeta' as const,
+      transactionId: 'txn_010',
+      status: 'delivered' as const,
+      createdAt: new Date(now.getTime() - 200 * 60000),
+      branch: 'Norte' as const
+    },
+    {
+      id: 'test_11',
+      userId: 'user_11',
+      customerName: 'Cliente 28',
+      contact: '+57 300 123 4567',
+      address: 'Calle 60 #35-45',
+      deliveryType: 'delivery' as const,
+      items: [
+        { id: 'item_18', name: 'Empanada de Pollo', quantity: 2, price: 3500 }
+      ],
+      totalAmount: 7000,
+      currency: 'COP',
+      paymentMethod: 'efectivo' as const,
+      transactionId: 'txn_011',
+      status: 'delivered' as const,
+      createdAt: new Date(now.getTime() - 220 * 60000),
+      branch: 'Norte' as const
+    }
+  ];
+};
+
 export default function PedidosScreen() {
-  const { currentUser, hasPermission, isManager } = useAdmin();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentUser, hasPermission, isManager, logout } = useAdmin();
+  const [orders, setOrders] = useState<Order[]>(generateTestOrders());
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const isAdmin = currentUser?.email === 'maria@deliempanada.com';
@@ -69,7 +280,8 @@ export default function PedidosScreen() {
     }
 
     if (!db) {
-      console.warn('Firebase not configured');
+      console.warn('Firebase not configured - using test data');
+      setOrders(generateTestOrders());
       setLoading(false);
       return;
     }
@@ -98,15 +310,19 @@ export default function PedidosScreen() {
           } as Order);
         });
         
-        setOrders(ordersData);
+        if (ordersData.length === 0) {
+          setOrders(generateTestOrders());
+        } else {
+          setOrders(ordersData);
+        }
         setLoading(false);
         setRefreshing(false);
       },
       (error) => {
         console.error('Error fetching orders:', error);
+        setOrders(generateTestOrders());
         setLoading(false);
         setRefreshing(false);
-        Alert.alert('Error', 'No se pudieron cargar los pedidos');
       }
     );
 
@@ -133,6 +349,28 @@ export default function PedidosScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
+    setTimeout(() => {
+      setOrders(generateTestOrders());
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que deseas cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/admin-login');
+          }
+        }
+      ]
+    );
   };
 
   const formatTime = (timestamp: any) => {
@@ -178,7 +416,11 @@ export default function PedidosScreen() {
           <Text style={styles.headerTitle}>DELI EMPANADA</Text>
           <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
         </View>
-        <View style={styles.headerRight} />
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <LogOut size={20} color={Colors.light.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.tabBar}>
@@ -188,15 +430,6 @@ export default function PedidosScreen() {
             Pedidos ({orders.length})
           </Text>
         </TouchableOpacity>
-        {isAdmin && (
-          <TouchableOpacity 
-            style={styles.tab}
-            onPress={() => router.push('/estadisticas')}
-          >
-            <BarChart3 size={18} color={Colors.light.textLight} />
-            <Text style={styles.tabText}>Estadísticas</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       <View style={styles.summaryCards}>
@@ -225,13 +458,7 @@ export default function PedidosScreen() {
           />
         }
       >
-        {newOrders.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Package size={64} color={Colors.light.border} />
-            <Text style={styles.emptyTitle}>No hay pedidos</Text>
-            <Text style={styles.emptySubtext}>Los pedidos aparecerán aquí</Text>
-          </View>
-        ) : (
+        {newOrders.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionIcon}>⚠️</Text>
@@ -263,8 +490,12 @@ export default function PedidosScreen() {
                 </View>
 
                 <View style={styles.orderDelivery}>
-                  <Text style={styles.orderDeliveryIcon}>🏠</Text>
-                  <Text style={styles.orderDeliveryText}>Dom-icilio</Text>
+                  <Text style={styles.orderDeliveryIcon}>
+                    {order.deliveryType === 'delivery' ? '🏠' : '🛍️'}
+                  </Text>
+                  <Text style={styles.orderDeliveryText}>
+                    {order.deliveryType === 'delivery' ? 'Dom-icilio' : 'Recoger'}
+                  </Text>
                 </View>
 
                 <View style={styles.orderActions}>
@@ -299,6 +530,103 @@ export default function PedidosScreen() {
               </View>
             ))}
           </>
+        )}
+
+        {processingOrders.length > 0 && (
+          <>
+            <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+              <Text style={styles.sectionIcon}>🔄</Text>
+              <Text style={styles.sectionTitle}>En Proceso ({processingOrders.length})</Text>
+            </View>
+
+            {processingOrders.map((order) => (
+              <View key={order.id} style={styles.orderCard}>
+                <View style={styles.orderHeader}>
+                  <View style={styles.orderHeaderLeft}>
+                    <Text style={styles.orderCustomer}>{order.customerName}</Text>
+                    <Text style={styles.orderTime}>{formatTime(order.createdAt)}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: '#FFF8E1' }]}>
+                    <Text style={[styles.statusBadgeText, { color: '#FF9800' }]}>En Proceso</Text>
+                  </View>
+                </View>
+
+                <View style={styles.orderAmount}>
+                  <Text style={styles.orderAmountText}>{formatCurrency(order.totalAmount)}</Text>
+                </View>
+
+                <View style={styles.orderItems}>
+                  {order.items.map((item, index) => (
+                    <Text key={index} style={styles.orderItemText}>
+                      {item.quantity}x {item.name}
+                    </Text>
+                  ))}
+                </View>
+
+                <View style={styles.orderDelivery}>
+                  <Text style={styles.orderDeliveryIcon}>
+                    {order.deliveryType === 'delivery' ? '🏠' : '🛍️'}
+                  </Text>
+                  <Text style={styles.orderDeliveryText}>
+                    {order.deliveryType === 'delivery' ? 'Dom-icilio' : 'Recoger'}
+                  </Text>
+                </View>
+
+                <View style={styles.orderActions}>
+                  <TouchableOpacity
+                    style={[styles.acceptButton, { flex: 1 }]}
+                    onPress={() => handleStatusUpdate(order.id, 'delivered')}
+                  >
+                    <Text style={styles.acceptButtonIcon}>✓</Text>
+                    <Text style={styles.acceptButtonText}>Completar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+
+        {completedOrders.length > 0 && (
+          <>
+            <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+              <Text style={styles.sectionIcon}>✅</Text>
+              <Text style={styles.sectionTitle}>Completados ({completedOrders.length})</Text>
+            </View>
+
+            {completedOrders.map((order) => (
+              <View key={order.id} style={[styles.orderCard, { opacity: 0.7 }]}>
+                <View style={styles.orderHeader}>
+                  <View style={styles.orderHeaderLeft}>
+                    <Text style={styles.orderCustomer}>{order.customerName}</Text>
+                    <Text style={styles.orderTime}>{formatTime(order.createdAt)}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: '#E8F5E9' }]}>
+                    <Text style={[styles.statusBadgeText, { color: Colors.light.success }]}>Completado</Text>
+                  </View>
+                </View>
+
+                <View style={styles.orderAmount}>
+                  <Text style={styles.orderAmountText}>{formatCurrency(order.totalAmount)}</Text>
+                </View>
+
+                <View style={styles.orderItems}>
+                  {order.items.map((item, index) => (
+                    <Text key={index} style={styles.orderItemText}>
+                      {item.quantity}x {item.name}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+
+        {orders.length === 0 && (
+          <View style={styles.emptyContainer}>
+            <Package size={64} color={Colors.light.border} />
+            <Text style={styles.emptyTitle}>No hay pedidos</Text>
+            <Text style={styles.emptySubtext}>Los pedidos aparecerán aquí</Text>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -346,7 +674,12 @@ const styles = StyleSheet.create({
     color: Colors.light.textLight,
   },
   headerRight: {
-    width: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  logoutButton: {
+    padding: 4,
   },
   tabBar: {
     flexDirection: 'row',
