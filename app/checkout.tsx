@@ -68,8 +68,18 @@ export default function CheckoutScreen() {
     const amount = total * 100;
 
     if (!publicKey || !redirectUrl) {
-      Alert.alert('Error', 'Configuración de pago no disponible. Por favor contacta al administrador.');
-      console.error('Missing Wompi env vars:', { publicKey, redirectUrl });
+      const missingVars = [];
+      if (!publicKey) missingVars.push('EXPO_PUBLIC_WOMPI_P');
+      if (!redirectUrl) missingVars.push('EXPO_PUBLIC_WOMPI_R');
+      
+      Alert.alert(
+        'Error de Configuración',
+        'La pasarela de pago no está configurada. Por favor usa el método de pago en efectivo o contacta al administrador.'
+      );
+      console.error('❌ Missing Wompi environment variables:', missingVars.join(', '));
+      console.log('💡 Add these to your Expo dashboard or .env file:');
+      console.log('   - EXPO_PUBLIC_WOMPI_P (Wompi public key)');
+      console.log('   - EXPO_PUBLIC_WOMPI_R (Redirect URL)');
       return;
     }
 
