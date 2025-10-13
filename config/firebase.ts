@@ -3,40 +3,28 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Your web app's Firebase configuration
-// Replace these values with your actual Firebase config
+// Your actual Firebase configuration
 const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "your-app-id"
+  apiKey: "AIzaSyCDS1YVZoD1GWHjwlJaL7VTmcTeBJxk_uY",
+  authDomain: "deli-empanada-mobile-app.firebaseapp.com",
+  projectId: "deli-empanada-mobile-app",
+  storageBucket: "deli-empanada-mobile-app.firebasestorage.app",
+  messagingSenderId: "626108798932",
+  appId: "1:626108798932:web:eed7d0bd3a1ccbebab2841"
 };
 
-// Check if Firebase is properly configured
-const isFirebaseConfigured = firebaseConfig.apiKey !== "your-api-key";
-
-let app: any = null;
-let auth: any = null;
-let db: any = null;
-let storage: any = null;
-
-if (isFirebaseConfigured) {
-  try {
-    // Initialize Firebase
-    app = initializeApp(firebaseConfig);
-    
-    // Initialize Firebase services
-    auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
-  } catch (error) {
-    console.warn('Firebase initialization failed:', error);
-  }
-} else {
-  console.warn('Firebase not configured. Using mock data.');
+// Initialize Firebase
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+  console.log('✅ Firebase initialized successfully');
+} catch (error) {
+  console.error('❌ Firebase initialization failed:', error);
 }
 
-export { auth, db, storage };
-export default app;
+// Initialize services
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+export { app, auth, db, storage };
