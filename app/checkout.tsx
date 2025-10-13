@@ -12,10 +12,10 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { MapPin, Phone, User, CreditCard, Truck, Store, Package, Building2 } from 'lucide-react-native';
+import { MapPin, Phone, User, Truck, Store, Package, Building2 } from 'lucide-react-native';
 import { useCart } from '@/providers/CartProvider';
 import { useAdmin } from '@/providers/AdminProvider';
-import WompiCheckout from '@/components/WompiCheckout';
+
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
@@ -23,8 +23,6 @@ export default function CheckoutScreen() {
   const { getTotalPrice, clearCart, cart } = useCart();
   const { currentUser } = useAdmin();
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
-  const [showWompi, setShowWompi] = useState(false);
   const [branch, setBranch] = useState<'viejo' | 'nuevo'>('viejo');
   const [formData, setFormData] = useState({
     name: '',
@@ -51,56 +49,10 @@ export default function CheckoutScreen() {
       return;
     }
 
-    if (paymentMethod === 'card') {
-      setShowWompi(true);
-    } else {
-      handleCashOrder();
-    }
+    handleCashOrder();
   };
 
-  const handlePaymentSuccess = async (transactionId: string) => {
-    console.log('✅ Payment successful:', transactionId);
-    
-    try {
-      if (db) {
-        const orderData = {
-          userId: 'guest',
-          customerName: formData.name,
-          contact: formData.phone,
-          address: deliveryType === 'delivery' ? formData.address : 'Recoger en tienda',
-          deliveryType,
-          branch,
-          notes: formData.notes || '',
-          items: cart.map(item => ({
-            id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-          totalAmount: total,
-          currency: process.env.EXPO_PUBLIC_CURRENC || 'COP',
-          paymentMethod: 'tarjeta',
-          transactionId,
-          status: 'paid',
-          createdAt: serverTimestamp(),
-        };
 
-        await addDoc(collection(db, 'pedidos'), orderData);
-        console.log('✅ Order saved to Firestore');
-      }
-
-      Alert.alert('¡Pedido Confirmado!', `✅ ¡Gracias por tu compra!\n\nTransacción #${transactionId}`);
-      setShowWompi(false);
-      clearCart();
-      router.replace('/confirmation');
-    } catch (error) {
-      console.error('Error saving order:', error);
-      Alert.alert('Pago Exitoso', `Transacción #${transactionId}\n\nTu pedido ha sido confirmado.`);
-      setShowWompi(false);
-      clearCart();
-      router.replace('/confirmation');
-    }
-  };
 
   const handleCashOrder = async () => {
     try {
@@ -120,9 +72,7 @@ export default function CheckoutScreen() {
             price: item.price,
           })),
           totalAmount: total,
-          currency: process.env.EXPO_PUBLIC_CURRENC || 'COP',
           paymentMethod: 'efectivo',
-          transactionId: `CASH-${Date.now()}`,
           status: 'pending',
           createdAt: serverTimestamp(),
         };
@@ -279,38 +229,9 @@ export default function CheckoutScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Método de Pago</Text>
-            <View style={styles.paymentOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.paymentOption,
-                  paymentMethod === 'card' && styles.paymentOptionActive,
-                ]}
-                onPress={() => setPaymentMethod('card')}
-              >
-                <CreditCard size={24} color={paymentMethod === 'card' ? '#CC0000' : '#666666'} />
-                <Text style={[
-                  styles.paymentOptionText,
-                  paymentMethod === 'card' && styles.paymentOptionTextActive,
-                ]}>
-                  Tarjeta
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.paymentOption,
-                  paymentMethod === 'cash' && styles.paymentOptionActive,
-                ]}
-                onPress={() => setPaymentMethod('cash')}
-              >
-                <Text style={styles.cashIcon}>💵</Text>
-                <Text style={[
-                  styles.paymentOptionText,
-                  paymentMethod === 'cash' && styles.paymentOptionTextActive,
-                ]}>
-                  Efectivo
-                </Text>
-              </TouchableOpacity>
+            <View style={styles.paymentInfo}>
+              <Text style={styles.cashIcon}>💵</Text>
+              <Text style={styles.paymentInfoText}>Pago en Efectivo al Recibir</Text>
             </View>
           </View>
 
@@ -343,13 +264,7 @@ export default function CheckoutScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <WompiCheckout
-        visible={showWompi}
-        amount={total}
-        reference={`ORDER-${Date.now()}`}
-        onClose={() => setShowWompi(false)}
-        onSuccess={handlePaymentSuccess}
-      />
+
     </SafeAreaView>
   );
 }
@@ -435,34 +350,24 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  paymentOptions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  paymentOption: {
-    flex: 1,
+  paymentInfo: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 15,
+    padding: 20,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#EEEEEE',
-  },
-  paymentOptionActive: {
-    borderColor: '#CC0000',
-    backgroundColor: '#FFF5F5',
-  },
-  paymentOptionText: {
-    fontSize: 14,
-    color: '#666666',
-    marginTop: 8,
-    fontWeight: '600',
-  },
-  paymentOptionTextActive: {
-    color: '#CC0000',
+    borderColor: '#4CAF50',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
   },
   cashIcon: {
-    fontSize: 24,
+    fontSize: 32,
+  },
+  paymentInfoText: {
+    fontSize: 16,
+    color: '#333333',
+    fontWeight: '600',
   },
   totalSection: {
     backgroundColor: '#FFFFFF',
