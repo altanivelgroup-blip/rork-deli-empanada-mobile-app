@@ -1,63 +1,63 @@
-import React, { useState, useCallback } from "react";
-import { View, Modal, ActivityIndicator, StyleSheet, TouchableOpacity, Text } from "react-native";
-import { WebView } from "react-native-webview";
-import { X } from "lucide-react-native";
-import Colors from "@/constants/colors";
+import React, { useState } from 'react';
+import { Modal, View, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
+import { WebView } from 'react-native-webview';
+import { X } from 'lucide-react-native';
 
-interface Props {
-  visible: boolean;
-  amount: number;
-  reference: string;
+interface WompiCheckoutProps {
+  url: string;
   onClose: () => void;
   onSuccess: (transactionId: string) => void;
 }
 
-export default function WompiCheckout({ visible, amount, reference, onClose, onSuccess }: Props) {
+export default function WompiCheckout({ url, onClose, onSuccess }: WompiCheckoutProps) {
   const [loading, setLoading] = useState(true);
-  const WOMPI_PUBLIC_KEY = process.env.EXPO_PUBLIC_WOMPI_P || "";
-  const WOMPI_REDIRECT_URL = process.env.EXPO_PUBLIC_WOMPI_R || "https://checkout.wompi.co/p/";
-  const CURRENCY = process.env.EXPO_PUBLIC_CURRENC || "COP";
-  const BUSINESS = process.env.EXPO_PUBLIC_BUSINESS || "Deli Empanada";
 
-  const wompiUrl = `${WOMPI_REDIRECT_URL}?public-key=${WOMPI_PUBLIC_KEY}&currency=${CURRENCY}&amount-in-cents=${amount * 100}&reference=${reference}&redirect-url=${WOMPI_REDIRECT_URL}`;
+  const handleNavigationStateChange = (navState: any) => {
+    const { url: currentUrl } = navState;
+    console.log('WebView URL:', currentUrl);
 
-  const handleNavigation = useCallback(
-    (event: any) => {
-      const { url } = event;
-      if (url.includes("success") || url.includes("approved")) {
-        const txMatch = url.match(/transaction_id=([a-zA-Z0-9_-]+)/);
-        const transactionId = txMatch ? txMatch[1] : "unknown";
+    if (currentUrl.includes('id=')) {
+      const match = currentUrl.match(/id=([^&]+)/);
+      if (match && match[1]) {
+        const transactionId = match[1];
+        console.log('✅ Transaction ID detected:', transactionId);
         onSuccess(transactionId);
-        onClose();
       }
-    },
-    [onSuccess, onClose]
-  );
+    }
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
+    <Modal
+      visible={true}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <X size={20} color={Colors.light.text} />
+          <Text style={styles.headerTitle}>Pago con Tarjeta</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={24} color="#333333" />
           </TouchableOpacity>
-          <Text style={styles.title}>Pago Seguro ({BUSINESS})</Text>
         </View>
 
-        <View style={styles.webviewContainer}>
-          {loading && (
-            <View style={styles.loader}>
-              <ActivityIndicator size="large" color={Colors.light.primary} />
-            </View>
-          )}
-          <WebView
-            source={{ uri: wompiUrl }}
-            onLoadEnd={() => setLoading(false)}
-            onNavigationStateChange={handleNavigation}
-            javaScriptEnabled
-            domStorageEnabled
-          />
-        </View>
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#CC0000" />
+            <Text style={styles.loadingText}>Cargando pasarela de pago...</Text>
+          </View>
+        )}
+
+        <WebView
+          source={{ uri: url }}
+          style={styles.webview}
+          onNavigationStateChange={handleNavigationStateChange}
+          onLoadStart={() => setLoading(true)}
+          onLoadEnd={() => setLoading(false)}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={true}
+        />
       </View>
     </Modal>
   );
@@ -66,33 +66,39 @@ export default function WompiCheckout({ visible, amount, reference, onClose, onS
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: '#EEEEEE',
   },
-  closeBtn: {
-    position: "absolute" as const,
-    left: 16,
-    padding: 6,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
   },
-  title: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: Colors.light.text,
+  closeButton: {
+    padding: 5,
   },
-  webviewContainer: {
+  webview: {
     flex: 1,
   },
-  loader: {
-    position: "absolute" as const,
-    top: "50%",
-    left: "50%",
-    transform: [{ translateX: -20 }, { translateY: -20 }],
+  loadingContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666666',
   },
 });

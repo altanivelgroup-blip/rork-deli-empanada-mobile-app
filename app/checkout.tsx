@@ -12,9 +12,10 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { MapPin, Phone, User, Truck, Store, Package, Building2 } from 'lucide-react-native';
+import { MapPin, Phone, User, Truck, Store, Package, Building2, CreditCard, Banknote } from 'lucide-react-native';
 import { useCart } from '@/providers/CartProvider';
 import { useAdmin } from '@/providers/AdminProvider';
+import WompiCheckout from '@/components/WompiCheckout';
 
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -24,6 +25,9 @@ export default function CheckoutScreen() {
   const { currentUser } = useAdmin();
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
   const [branch, setBranch] = useState<'viejo' | 'nuevo'>('viejo');
+  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'tarjeta'>('efectivo');
+  const [showWompi, setShowWompi] = useState(false);
+  const [wompiUrl, setWompiUrl] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -49,7 +53,31 @@ export default function CheckoutScreen() {
       return;
     }
 
-    handleCashOrder();
+    if (paymentMethod === 'tarjeta') {
+      handleCardPayment();
+    } else {
+      handleCashOrder();
+    }
+  };
+
+  const handleCardPayment = () => {
+    const publicKey = process.env.EXPO_PUBLIC_WOMPI_P;
+    const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_R;
+    const currency = process.env.EXPO_PUBLIC_CURRENC || 'COP';
+    const reference = `order_${Date.now()}`;
+    const amount = total * 100;
+
+    if (!publicKey || !redirectUrl) {
+      Alert.alert('Error', 'Configuración de pago no disponible. Por favor contacta al administrador.');
+      console.error('Missing Wompi env vars:', { publicKey, redirectUrl });
+      return;
+    }
+
+    const url = `https://checkout.wompi.co/p/?public-key=${publicKey}&amount-in-cents=${amount}&currency=${currency}&reference=${reference}&redirect-url=${redirectUrl}&customer-data:name=${encodeURIComponent(formData.name)}&customer-data:email=${encodeURIComponent(formData.phone)}&customer-data:phone=${encodeURIComponent(formData.phone)}`;
+
+    console.log('Opening Wompi URL:', url);
+    setWompiUrl(url);
+    setShowWompi(true);
   };
 
 
@@ -86,6 +114,48 @@ export default function CheckoutScreen() {
       router.replace('/confirmation');
     } catch (error) {
       console.error('Error saving cash order:', error);
+      Alert.alert('Pedido Confirmado', 'Tu pedido ha sido recibido.');
+      clearCart();
+      router.replace('/confirmation');
+    }
+  };
+
+  const handlePaymentSuccess = async (transactionId: string) => {
+    try {
+      if (db) {
+        const orderData = {
+          userId: 'guest',
+          customerName: formData.name,
+          contact: formData.phone,
+          address: deliveryType === 'delivery' ? formData.address : 'Recoger en tienda',
+          deliveryType,
+          branch,
+          notes: formData.notes || '',
+          items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          totalAmount: total,
+          paymentMethod: 'tarjeta',
+          transactionId,
+          currency: process.env.EXPO_PUBLIC_CURRENC || 'COP',
+          status: 'paid',
+          createdAt: serverTimestamp(),
+        };
+
+        await addDoc(collection(db, 'pedidos'), orderData);
+        console.log('✅ Card order saved to Firestore with transaction:', transactionId);
+      }
+
+      setShowWompi(false);
+      Alert.alert('¡Pago Exitoso!', '✅ ¡Gracias por tu compra!\n\nTu pedido ha sido confirmado.');
+      clearCart();
+      router.replace('/confirmation');
+    } catch (error) {
+      console.error('Error saving card order:', error);
+      setShowWompi(false);
       Alert.alert('Pedido Confirmado', 'Tu pedido ha sido recibido.');
       clearCart();
       router.replace('/confirmation');
@@ -229,9 +299,40 @@ export default function CheckoutScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Método de Pago</Text>
-            <View style={styles.paymentInfo}>
-              <Text style={styles.cashIcon}>💵</Text>
-              <Text style={styles.paymentInfoText}>Pago en Efectivo al Recibir</Text>
+            <View style={styles.paymentOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.paymentOption,
+                  paymentMethod === 'efectivo' && styles.paymentOptionActive,
+                ]}
+                onPress={() => setPaymentMethod('efectivo')}
+              >
+                <Banknote size={24} color={paymentMethod === 'efectivo' ? '#4CAF50' : '#666666'} />
+                <Text style={[
+                  styles.paymentOptionText,
+                  paymentMethod === 'efectivo' && styles.paymentOptionTextActiveGreen,
+                ]}>
+                  Efectivo
+                </Text>
+                <Text style={styles.paymentOptionSubtext}>Al recibir</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.paymentOption,
+                  paymentMethod === 'tarjeta' && styles.paymentOptionActiveBlue,
+                ]}
+                onPress={() => setPaymentMethod('tarjeta')}
+              >
+                <CreditCard size={24} color={paymentMethod === 'tarjeta' ? '#2196F3' : '#666666'} />
+                <Text style={[
+                  styles.paymentOptionText,
+                  paymentMethod === 'tarjeta' && styles.paymentOptionTextActiveBlue,
+                ]}>
+                  Tarjeta
+                </Text>
+                <Text style={styles.paymentOptionSubtext}>Wompi</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -264,7 +365,13 @@ export default function CheckoutScreen() {
         </View>
       </KeyboardAvoidingView>
 
-
+      {showWompi && (
+        <WompiCheckout
+          url={wompiUrl}
+          onClose={() => setShowWompi(false)}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -350,24 +457,43 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  paymentInfo: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#4CAF50',
+  paymentOptions: {
     flexDirection: 'row',
-    justifyContent: 'center',
     gap: 12,
   },
-  cashIcon: {
-    fontSize: 32,
+  paymentOption: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#EEEEEE',
   },
-  paymentInfoText: {
-    fontSize: 16,
-    color: '#333333',
+  paymentOptionActive: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#F1F8F4',
+  },
+  paymentOptionActiveBlue: {
+    borderColor: '#2196F3',
+    backgroundColor: '#E3F2FD',
+  },
+  paymentOptionText: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 8,
     fontWeight: '600',
+  },
+  paymentOptionTextActiveGreen: {
+    color: '#4CAF50',
+  },
+  paymentOptionTextActiveBlue: {
+    color: '#2196F3',
+  },
+  paymentOptionSubtext: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 4,
   },
   totalSection: {
     backgroundColor: '#FFFFFF',
