@@ -42,21 +42,34 @@ export const [FirebaseProvider, useFirebase] = createContextHook<FirebaseContext
     if (!db) {
       return;
     }
-    
-    // Listen to orders collection in real-time
+
+    if (!user) {
+      setOrders([]);
+      return;
+    }
+
     const ordersRef = collection(db, 'orders');
     const q = query(ordersRef, orderBy('createdAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setOrders(ordersData);
-    });
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const ordersData = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }));
+        setOrders(ordersData);
+      },
+      (error) => {
+        console.error('[Firestore] orders onSnapshot error:', error);
+        if ((error as { code?: string })?.code === 'permission-denied') {
+          setOrders([]);
+        }
+      }
+    );
 
     return unsubscribe;
-  }, []);
+  }, [db, user]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!auth) {
