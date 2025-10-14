@@ -42,6 +42,11 @@ export default function CheckoutScreen() {
     }
   }, [currentUser]);
 
+  useEffect(() => {
+    console.log('🟣 [State Change] showWompi:', showWompi);
+    console.log('🟣 [State Change] wompiUrl:', wompiUrl);
+  }, [showWompi, wompiUrl]);
+
   const handleSubmit = () => {
     console.log('handleSubmit started');
     if (!formData.name || !formData.phone) {
@@ -62,24 +67,33 @@ export default function CheckoutScreen() {
   };
 
   const handleCardPayment = () => {
-    console.log('handleCardPayment started');
+    console.log('🔵 [handleCardPayment] STARTED');
+    console.log('🔵 [handleCardPayment] Current state - showWompi:', showWompi);
+    console.log('🔵 [handleCardPayment] Current state - wompiUrl:', wompiUrl);
+    
     const publicKey = process.env.EXPO_PUBLIC_WOMPI_PUBLIC_KEY;
     const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_REDIRECT_URL;
     const currency = process.env.EXPO_PUBLIC_CURRENCY ?? 'COP';
     const reference = `DE${Date.now()}`;
     const cents = Math.round(total * 100);
 
-    console.log('Validation passed: name=' + formData.name + ', phone=' + formData.phone + ', address=' + (deliveryType === 'delivery' ? formData.address : 'pickup'));
+    console.log('🔵 [handleCardPayment] publicKey:', publicKey);
+    console.log('🔵 [handleCardPayment] redirectUrl:', redirectUrl);
+    console.log('🔵 [handleCardPayment] currency:', currency);
+    console.log('🔵 [handleCardPayment] reference:', reference);
+    console.log('🔵 [handleCardPayment] cents:', cents);
+    console.log('🔵 [handleCardPayment] total:', total);
+
     const missingVars: string[] = [];
     if (!publicKey) missingVars.push('EXPO_PUBLIC_WOMPI_PUBLIC_KEY');
     if (!redirectUrl) missingVars.push('EXPO_PUBLIC_WOMPI_REDIRECT_URL');
 
     if (missingVars.length > 0) {
+      console.error('❌ [handleCardPayment] Missing variables:', missingVars);
       Alert.alert(
         'Error de configuración',
         `Faltan variables de entorno Wompi: ${missingVars.join(', ')}`,
       );
-      console.error('❌ Missing Wompi environment variables:', missingVars);
       return;
     }
 
@@ -105,14 +119,12 @@ export default function CheckoutScreen() {
 
     const url = `https://checkout.wompi.co/p/?${params.toString()}`;
 
-    console.log('[Wompi] Opening checkout URL:', url);
-    console.log('[Wompi] Amount in cents:', cents);
-    console.log('[Wompi] Reference:', reference);
-    console.log('[Wompi] Customer name:', formData.name);
-    console.log('[Wompi] Customer phone:', formData.phone);
+    console.log('🔵 [handleCardPayment] Generated URL:', url);
+    console.log('🔵 [handleCardPayment] Setting wompiUrl state...');
     setWompiUrl(url);
+    console.log('🔵 [handleCardPayment] Setting showWompi to TRUE...');
     setShowWompi(true);
-    console.log('[Wompi] Modal should now be visible, showWompi=true');
+    console.log('🔵 [handleCardPayment] State updates called - COMPLETED');
   };
 
 
@@ -403,8 +415,14 @@ export default function CheckoutScreen() {
       {showWompi && (
         <WompiCheckout
           url={wompiUrl}
-          onClose={() => setShowWompi(false)}
-          onSuccess={handlePaymentSuccess}
+          onClose={() => {
+            console.log('🔴 [WompiCheckout] onClose called');
+            setShowWompi(false);
+          }}
+          onSuccess={(transactionId) => {
+            console.log('🟢 [WompiCheckout] onSuccess called with ID:', transactionId);
+            handlePaymentSuccess(transactionId);
+          }}
         />
       )}
     </SafeAreaView>
