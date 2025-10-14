@@ -43,6 +43,7 @@ export default function CheckoutScreen() {
   }, [currentUser]);
 
   const handleSubmit = () => {
+    console.log('handleSubmit started');
     if (!formData.name || !formData.phone) {
       Alert.alert('Error', 'Por favor completa los campos obligatorios');
       return;
@@ -58,13 +59,13 @@ export default function CheckoutScreen() {
     } else {
       handleCashOrder();
     }
-    console.log('handleSubmit started');
   };
 
   const handleCardPayment = () => {
+    console.log('handleCardPayment started');
     const publicKey = process.env.EXPO_PUBLIC_WOMPI_P;
     const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_REDIRECT_URL;
-    const currency = process.env.EXPO_PUBLIC_CURRENC ?? 'COP';
+    const currency = process.env.EXPO_PUBLIC_CURRENCY ?? 'COP';
     const reference = `DE${Date.now()}`;
     const cents = Math.round(total * 100);
 
@@ -111,7 +112,7 @@ export default function CheckoutScreen() {
     console.log('[Wompi] Customer phone:', formData.phone);
     setWompiUrl(url);
     setShowWompi(true);
-    console.log('Calling handleCardPayment');
+    console.log('[Wompi] Modal should now be visible, showWompi=true');
   };
 
 
@@ -174,7 +175,7 @@ export default function CheckoutScreen() {
           totalAmount: total,
           paymentMethod: 'tarjeta',
           transactionId,
-          currency: process.env.EXPO_PUBLIC_CURRENC || 'COP',
+          currency: process.env.EXPO_PUBLIC_CURRENCY || 'COP',
           status: 'paid',
           createdAt: serverTimestamp(),
         };
