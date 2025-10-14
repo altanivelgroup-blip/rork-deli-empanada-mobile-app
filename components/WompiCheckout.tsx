@@ -1,110 +1,115 @@
-import React, { useState } from 'react';
-import { View, Modal, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Modal, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
-import crypto from 'crypto-js'; // Add to package.json: npm install crypto-js
+import { X } from 'lucide-react-native';
 
-const WompiCheckout = ({ visible, onClose, amount, reference, customerName, customerEmail, customerPhone }) => {
-  const [showWompi, setShowWompi] = useState(visible);
+interface WompiCheckoutProps {
+  url: string;
+  onClose: () => void;
+  onSuccess: (transactionId: string) => void;
+}
 
-  // Full set of keys from env (prod or test)
-  const publicKey = process.env.EXPO_PUBLIC_WOMPI_P || ''; // pub_prod_ or pub_test_
-  const privateKey = process.env.EXPO_PUBLIC_WOMPI_PRIVATE || ''; // prv_prod_ for verification
-  const integritySecret = process.env.EXPO_PUBLIC_WOMPI_INTEGRITY_SECRET || ''; // For prod signature
-  const eventsKey = process.env.EXPO_PUBLIC_WOMPI_EVENTS || ''; // For webhooks if needed
-  const currency = process.env.EXPO_PUBLIC_CURRENC || 'COP';
-  const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_REDIRECT_URL || 'https://deliempanada.com/confirmation';
-  const businessName = process.env.EXPO_PUBLIC_BUSINESS_NAME || 'Deli Empanada';
+const WompiCheckout: React.FC<WompiCheckoutProps> = ({ url, onClose, onSuccess }) => {
+  useEffect(() => {
+    console.log('[WompiCheckout] Component mounted with URL:', url);
+  }, [url]);
 
-  if (!publicKey || !privateKey || !integritySecret) {
-    Alert.alert('Error', 'Missing Wompi keys. Check all env vars: public, private, integrity secret.');
-    onClose();
-    return null;
-  }
+  const handleNavigationStateChange = (navState: any) => {
+    const currentUrl = navState.url;
+    console.log('[WompiCheckout] Navigation to:', currentUrl);
 
-  // Build customer data with defaults/validation
-  let customerData = '';
-  const safeName = customerName ? encodeURIComponent(customerName.trim()) : 'Test User';
-  customerData += `&customer-data:full-name=${safeName}`;
-  const safeEmail = customerEmail ? encodeURIComponent(customerEmail.trim()) : 'test@deliempanada.com';
-  customerData += `&customer-data:email=${safeEmail}`;
-  const cleanPhone = customerPhone ? customerPhone.replace(/\D/g, '') : '3991111111'; // Default approved test
-  customerData += `&customer-data:phone-number-prefix=+57`;
-  customerData += `&customer-data:phone-number=${encodeURIComponent(cleanPhone)}`;
-  customerData += `&customer-data:legal-id-type=CC`;
-  customerData += `&customer-data:legal-id=${encodeURIComponent(cleanPhone)}`;
-
-  // Generate integrity signature for prod (required to prevent tampering)
-  let signature = '';
-  if (publicKey.startsWith('pub_prod_') && integritySecret) {
-    const concat = `${reference}${amount}${currency}${integritySecret}`;
-    signature = crypto.SHA256(concat).toString();
-    signature = `&integrity-signature=sha256~${signature}`;
-  }
-
-  // Build full URL
-  const wompiUrl = `https://checkout.wompi.co/p/?public-key=${publicKey}&amount-in-cents=${amount}&currency=${currency}&reference=DE${reference}${customerData}&redirect-url=${encodeURIComponent(redirectUrl)}&business-name=${encodeURIComponent(businessName)}${signature}`;
-
-  console.log('Opening Wompi URL:', wompiUrl); // Log full URL
-
-  const handleNavigationStateChange = (navState) => {
-    const url = navState.url;
-    console.log('WebView URL:', url);
-
-    const urlParams = new URLSearchParams(url.split('?')[1]);
-    const transactionId = urlParams.get('id');
-    if (transactionId) {
-      console.log('Transaction ID:', transactionId);
-      verifyTransaction(transactionId);
-      setShowWompi(false);
-      onClose();
-    } else if (url.includes('approved') || url.includes('success')) {
-      Alert.alert('Pago Aprobado', 'Transacción completada.');
-      setShowWompi(false);
-      onClose();
+    if (currentUrl.includes('confirmation') || currentUrl.includes('redirect')) {
+      try {
+        const urlObj = new URL(currentUrl);
+        const transactionId = urlObj.searchParams.get('id');
+        
+        if (transactionId) {
+          console.log('[WompiCheckout] Transaction ID found:', transactionId);
+          onSuccess(transactionId);
+        } else {
+          console.log('[WompiCheckout] No transaction ID in URL');
+          onClose();
+        }
+      } catch (error) {
+        console.error('[WompiCheckout] Error parsing URL:', error);
+        onClose();
+      }
     }
   };
 
-  const verifyTransaction = async (transactionId) => {
-    try {
-      const response = await fetch(`https://production.wompi.co/v1/transactions/${transactionId}`, { // Prod endpoint
-        headers: { 'Authorization': `Bearer ${privateKey}` }, // Use private key for secure verification
-      });
-      const data = await response.json();
-      console.log('Verification:', data);
-      if (data.data.status === 'APPROVED') {
-        Alert.alert('Pago Aprobado', 'Procesado exitosamente.');
-      } else {
-        Alert.alert('Error', `No aprobado: ${data.data.status}`);
-      }
-    } catch (error) {
-      console.error('Verification error:', error);
-      Alert.alert('Error', 'No se pudo verificar.');
-    }
+  const handleError = (syntheticEvent: any) => {
+    const { nativeEvent } = syntheticEvent;
+    console.error('[WompiCheckout] WebView error:', nativeEvent);
   };
 
   return (
-    <Modal visible={showWompi} animationType="slide" onRequestClose={() => setShowWompi(false)}>
+    <Modal visible={true} animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalContainer}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Pago Seguro - Wompi</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={24} color="#333333" />
+          </TouchableOpacity>
+        </View>
         <WebView
-          source={{ uri: wompiUrl }}
+          source={{ uri: url }}
           style={styles.webview}
           onNavigationStateChange={handleNavigationStateChange}
-          onError={(e) => {
-            console.error('WebView error:', e.nativeEvent);
-            Alert.alert('Error', `Problema: ${e.nativeEvent.description}`);
-            setShowWompi(false);
-          }}
+          onError={handleError}
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#CC0000" />
+              <Text style={styles.loadingText}>Cargando pasarela de pago...</Text>
+            </View>
+          )}
         />
-        <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: { flex: 1 },
-  webview: { flex: 1 },
-  loader: { position: 'absolute', top: '50%', left: '50%' },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  webview: {
+    flex: 1,
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666666',
+  },
 });
 
 export default WompiCheckout;
