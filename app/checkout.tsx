@@ -88,10 +88,16 @@ export default function CheckoutScreen() {
       'redirect-url': String(redirectUrl),
     });
 
-    if (formData.name) params.append('customer-data:name', formData.name);
-    if (formData.phone) {
-      params.append('customer-data:email', `${formData.phone}@deliempanada.com`);
-      params.append('customer-data:phone-number', formData.phone);
+    if (formData.name && formData.name.trim()) {
+      params.append('customer-data:full-name', formData.name.trim());
+    }
+    
+    if (formData.phone && formData.phone.trim()) {
+      const cleanPhone = formData.phone.replace(/\D/g, '');
+      params.append('customer-data:phone-number', `+57${cleanPhone}`);
+      params.append('customer-data:phone-number-prefix', '+57');
+      params.append('customer-data:legal-id', cleanPhone);
+      params.append('customer-data:legal-id-type', 'CC');
     }
 
     const url = `https://checkout.wompi.co/p/?${params.toString()}`;
@@ -99,6 +105,8 @@ export default function CheckoutScreen() {
     console.log('[Wompi] Opening checkout URL:', url);
     console.log('[Wompi] Amount in cents:', cents);
     console.log('[Wompi] Reference:', reference);
+    console.log('[Wompi] Customer name:', formData.name);
+    console.log('[Wompi] Customer phone:', formData.phone);
     setWompiUrl(url);
     setShowWompi(true);
   };
