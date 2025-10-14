@@ -63,7 +63,7 @@ export default function CheckoutScreen() {
 
   const handleCardPayment = () => {
     console.log('handleCardPayment started');
-    const publicKey = process.env.EXPO_PUBLIC_WOMPI_P;
+    const publicKey = process.env.EXPO_PUBLIC_WOMPI_PUBLIC_KEY;
     const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_REDIRECT_URL;
     const currency = process.env.EXPO_PUBLIC_CURRENCY ?? 'COP';
     const reference = `DE${Date.now()}`;
@@ -71,7 +71,7 @@ export default function CheckoutScreen() {
 
     console.log('Validation passed: name=' + formData.name + ', phone=' + formData.phone + ', address=' + (deliveryType === 'delivery' ? formData.address : 'pickup'));
     const missingVars: string[] = [];
-    if (!publicKey) missingVars.push('EXPO_PUBLIC_WOMPI_P');
+    if (!publicKey) missingVars.push('EXPO_PUBLIC_WOMPI_PUBLIC_KEY');
     if (!redirectUrl) missingVars.push('EXPO_PUBLIC_WOMPI_REDIRECT_URL');
 
     if (missingVars.length > 0) {
