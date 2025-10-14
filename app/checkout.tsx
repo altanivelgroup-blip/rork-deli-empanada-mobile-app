@@ -63,27 +63,36 @@ export default function CheckoutScreen() {
   const handleCardPayment = () => {
     const publicKey = process.env.EXPO_PUBLIC_WOMPI_P;
     const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_R;
-    const currency = process.env.EXPO_PUBLIC_CURRENC || 'COP';
+    const currency = process.env.EXPO_PUBLIC_CURRENC ?? 'COP';
     const reference = `order_${Date.now()}`;
-    const amount = total * 100;
+    const cents = Math.round(total * 100);
 
-    if (!publicKey || !redirectUrl) {
-      const missingVars = [];
-      if (!publicKey) missingVars.push('EXPO_PUBLIC_WOMPI_P');
-      if (!redirectUrl) missingVars.push('EXPO_PUBLIC_WOMPI_R');
-      
+    const missingVars: string[] = [];
+    if (!publicKey) missingVars.push('EXPO_PUBLIC_WOMPI_P');
+    if (!redirectUrl) missingVars.push('EXPO_PUBLIC_WOMPI_R');
+
+    if (missingVars.length > 0) {
       Alert.alert(
-        'Error de Configuración',
-        'La pasarela de pago no está configurada. Por favor usa el método de pago en efectivo o contacta al administrador.'
+        'Error de configuración',
+        `Faltan variables de entorno Wompi: ${missingVars.join(', ')}`,
       );
-      console.error('❌ Missing Wompi environment variables:', missingVars.join(', '));
-      console.log('💡 Add these to your Expo dashboard or .env file:');
-      console.log('   - EXPO_PUBLIC_WOMPI_P (Wompi public key)');
-      console.log('   - EXPO_PUBLIC_WOMPI_R (Redirect URL)');
+      console.error('❌ Missing Wompi environment variables:', missingVars);
       return;
     }
 
-    const url = `https://checkout.wompi.co/p/?public-key=${publicKey}&amount-in-cents=${amount}&currency=${currency}&reference=${reference}&redirect-url=${redirectUrl}&customer-data:name=${encodeURIComponent(formData.name)}&customer-data:email=${encodeURIComponent(formData.phone)}&customer-data:phone=${encodeURIComponent(formData.phone)}`;
+    const params = new URLSearchParams({
+      'public-key': String(publicKey),
+      'amount-in-cents': String(cents),
+      currency,
+      reference,
+      'redirect-url': String(redirectUrl),
+    });
+
+    params.append('customer-data[name]', formData.name || '');
+    params.append('customer-data[email]', `${formData.phone || ''}@example.com`);
+    params.append('customer-data[phone]', formData.phone || '');
+
+    const url = `https://checkout.wompi.co/p/?${params.toString()}`;
 
     console.log('Opening Wompi URL:', url);
     setWompiUrl(url);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, Text, ActivityIndicator, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { X } from 'lucide-react-native';
 
@@ -13,16 +13,31 @@ export default function WompiCheckout({ url, onClose, onSuccess }: WompiCheckout
   const [loading, setLoading] = useState(true);
 
   const handleNavigationStateChange = (navState: any) => {
-    const { url: currentUrl } = navState;
-    console.log('WebView URL:', currentUrl);
+    const { url: currentUrl } = navState ?? {};
+    console.log('[Wompi] WebView URL:', currentUrl);
+    if (!currentUrl) return;
 
-    if (currentUrl.includes('id=')) {
-      const match = currentUrl.match(/id=([^&]+)/);
-      if (match && match[1]) {
-        const transactionId = match[1];
-        console.log('✅ Transaction ID detected:', transactionId);
-        onSuccess(transactionId);
+    try {
+      const parsed = new URL(currentUrl);
+      const idParam = parsed.searchParams.get('id') || parsed.searchParams.get('transactionId');
+      const status = parsed.searchParams.get('status') || parsed.searchParams.get('statusMessage');
+
+      if (idParam) {
+        console.log('✅ Transaction ID detected:', idParam, 'status:', status);
+        onSuccess(idParam);
+        return;
       }
+
+      if (/approved|APPROVED/i.test(currentUrl)) {
+        const match = currentUrl.match(/(id|transactionId)=([^&#]+)/i);
+        if (match && match[2]) {
+          onSuccess(match[2]);
+        }
+      }
+    } catch (e) {
+      console.log('[Wompi] URL parse error, fallback match');
+      const match = String(currentUrl).match(/(?:id|transactionId)=([^&#]+)/i);
+      if (match && match[1]) onSuccess(match[1]);
     }
   };
 
@@ -30,13 +45,14 @@ export default function WompiCheckout({ url, onClose, onSuccess }: WompiCheckout
     <Modal
       visible={true}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
       onRequestClose={onClose}
+      testID="wompiModal"
     >
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Pago con Tarjeta</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton} testID="wompiClose">
             <X size={24} color="#333333" />
           </TouchableOpacity>
         </View>
@@ -57,6 +73,7 @@ export default function WompiCheckout({ url, onClose, onSuccess }: WompiCheckout
           javaScriptEnabled={true}
           domStorageEnabled={true}
           startInLoadingState={true}
+          originWhitelist={["*"]}
         />
       </View>
     </Modal>
