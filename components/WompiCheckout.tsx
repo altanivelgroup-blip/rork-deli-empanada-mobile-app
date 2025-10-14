@@ -1,60 +1,63 @@
 import React, { useState } from 'react';
 import { View, Modal, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
+import crypto from 'crypto-js'; // Add to package.json: npm install crypto-js
 
 const WompiCheckout = ({ visible, onClose, amount, reference, customerName, customerEmail, customerPhone }) => {
   const [showWompi, setShowWompi] = useState(visible);
 
-  // Defaults to prevent 'undefined'
-  const businessName = process.env.EXPO_PUBLIC_BUSINESS_NAME || 'Deli Empanada'; // Add this to env if needed
+  // Full set of keys from env (prod or test)
+  const publicKey = process.env.EXPO_PUBLIC_WOMPI_P || ''; // pub_prod_ or pub_test_
+  const privateKey = process.env.EXPO_PUBLIC_WOMPI_PRIVATE || ''; // prv_prod_ for verification
+  const integritySecret = process.env.EXPO_PUBLIC_WOMPI_INTEGRITY_SECRET || ''; // For prod signature
+  const eventsKey = process.env.EXPO_PUBLIC_WOMPI_EVENTS || ''; // For webhooks if needed
   const currency = process.env.EXPO_PUBLIC_CURRENC || 'COP';
   const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_REDIRECT_URL || 'https://deliempanada.com/confirmation';
-  const publicKey = process.env.EXPO_PUBLIC_WOMPI_P || ''; // Your pub_test_ key
+  const businessName = process.env.EXPO_PUBLIC_BUSINESS_NAME || 'Deli Empanada';
 
-  if (!publicKey) {
-    Alert.alert('Error', 'Missing Wompi public key. Check env vars.');
+  if (!publicKey || !privateKey || !integritySecret) {
+    Alert.alert('Error', 'Missing Wompi keys. Check all env vars: public, private, integrity secret.');
     onClose();
     return null;
   }
 
-  // Build customer data only if values exist (prevents empty/undefined params)
+  // Build customer data with defaults/validation
   let customerData = '';
-  if (customerName) customerData += `&customer-data:full-name=${encodeURIComponent(customerName)}`;
-  if (customerEmail) customerData += `&customer-data:email=${encodeURIComponent(customerEmail)}`;
-  if (customerPhone) {
-    const cleanPhone = customerPhone.replace(/\D/g, '');
-    customerData += `&customer-data:phone-number-prefix=+57`;
-    customerData += `&customer-data:phone-number=${encodeURIComponent(cleanPhone)}`;
-    customerData += `&customer-data:legal-id-type=CC`; // As per docs/Rork
-    customerData += `&customer-data:legal-id=${encodeURIComponent(cleanPhone)}`; // Use phone as doc number for test
-  } else {
-    // Default test phone if missing (approved Nequi from docs)
-    const defaultPhone = '3991111111';
-    customerData += `&customer-data:phone-number-prefix=+57`;
-    customerData += `&customer-data:phone-number=${encodeURIComponent(defaultPhone)}`;
-    customerData += `&customer-data:legal-id-type=CC`;
-    customerData += `&customer-data:legal-id=${encodeURIComponent(defaultPhone)}`;
+  const safeName = customerName ? encodeURIComponent(customerName.trim()) : 'Test User';
+  customerData += `&customer-data:full-name=${safeName}`;
+  const safeEmail = customerEmail ? encodeURIComponent(customerEmail.trim()) : 'test@deliempanada.com';
+  customerData += `&customer-data:email=${safeEmail}`;
+  const cleanPhone = customerPhone ? customerPhone.replace(/\D/g, '') : '3991111111'; // Default approved test
+  customerData += `&customer-data:phone-number-prefix=+57`;
+  customerData += `&customer-data:phone-number=${encodeURIComponent(cleanPhone)}`;
+  customerData += `&customer-data:legal-id-type=CC`;
+  customerData += `&customer-data:legal-id=${encodeURIComponent(cleanPhone)}`;
+
+  // Generate integrity signature for prod (required to prevent tampering)
+  let signature = '';
+  if (publicKey.startsWith('pub_prod_') && integritySecret) {
+    const concat = `${reference}${amount}${currency}${integritySecret}`;
+    signature = crypto.SHA256(concat).toString();
+    signature = `&integrity-signature=sha256~${signature}`;
   }
 
-  // Build full URL with defaults
-  const wompiUrl = `https://checkout.wompi.co/p/?public-key=${publicKey}&amount-in-cents=${amount}&currency=${currency}&reference=DE${reference}${customerData}&redirect-url=${encodeURIComponent(redirectUrl)}&business-name=${encodeURIComponent(businessName)}`;
+  // Build full URL
+  const wompiUrl = `https://checkout.wompi.co/p/?public-key=${publicKey}&amount-in-cents=${amount}&currency=${currency}&reference=DE${reference}${customerData}&redirect-url=${encodeURIComponent(redirectUrl)}&business-name=${encodeURIComponent(businessName)}${signature}`;
 
-  console.log('Opening Wompi URL:', wompiUrl); // Log for debugging
+  console.log('Opening Wompi URL:', wompiUrl); // Log full URL
 
   const handleNavigationStateChange = (navState) => {
     const url = navState.url;
-    console.log('WebView URL:', url); // Log every URL change
+    console.log('WebView URL:', url);
 
-    // Detect transaction ID from redirect
     const urlParams = new URLSearchParams(url.split('?')[1]);
     const transactionId = urlParams.get('id');
     if (transactionId) {
-      console.log('Transaction ID detected:', transactionId);
+      console.log('Transaction ID:', transactionId);
       verifyTransaction(transactionId);
       setShowWompi(false);
       onClose();
     } else if (url.includes('approved') || url.includes('success')) {
-      console.log('Fallback success detected');
       Alert.alert('Pago Aprobado', 'Transacción completada.');
       setShowWompi(false);
       onClose();
@@ -63,19 +66,19 @@ const WompiCheckout = ({ visible, onClose, amount, reference, customerName, cust
 
   const verifyTransaction = async (transactionId) => {
     try {
-      const response = await fetch(`https://sandbox.wompi.co/v1/transactions/${transactionId}`, {
-        headers: { 'Authorization': `Bearer ${publicKey}` },
+      const response = await fetch(`https://production.wompi.co/v1/transactions/${transactionId}`, { // Prod endpoint
+        headers: { 'Authorization': `Bearer ${privateKey}` }, // Use private key for secure verification
       });
       const data = await response.json();
-      console.log('Verification response:', data);
+      console.log('Verification:', data);
       if (data.data.status === 'APPROVED') {
-        Alert.alert('Pago Aprobado', 'Tu pago fue procesado exitosamente.');
+        Alert.alert('Pago Aprobado', 'Procesado exitosamente.');
       } else {
-        Alert.alert('Error', `Pago no aprobado: ${data.data.status}`);
+        Alert.alert('Error', `No aprobado: ${data.data.status}`);
       }
     } catch (error) {
       console.error('Verification error:', error);
-      Alert.alert('Error', 'No se pudo verificar el pago.');
+      Alert.alert('Error', 'No se pudo verificar.');
     }
   };
 
@@ -86,10 +89,9 @@ const WompiCheckout = ({ visible, onClose, amount, reference, customerName, cust
           source={{ uri: wompiUrl }}
           style={styles.webview}
           onNavigationStateChange={handleNavigationStateChange}
-          onError={(syntheticEvent) => {
-            const { nativeEvent } = syntheticEvent;
-            console.error('WebView error:', nativeEvent);
-            Alert.alert('Error', `Problema con el pago: ${nativeEvent.description}`);
+          onError={(e) => {
+            console.error('WebView error:', e.nativeEvent);
+            Alert.alert('Error', `Problema: ${e.nativeEvent.description}`);
             setShowWompi(false);
           }}
         />
