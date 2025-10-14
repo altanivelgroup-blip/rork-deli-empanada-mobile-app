@@ -58,6 +58,7 @@ export default function CheckoutScreen() {
     } else {
       handleCashOrder();
     }
+    console.log('handleSubmit started');
   };
 
   const handleCardPayment = () => {
@@ -67,6 +68,7 @@ export default function CheckoutScreen() {
     const reference = `DE${Date.now()}`;
     const cents = Math.round(total * 100);
 
+    console.log('Validation passed: name=' + formData.name + ', phone=' + formData.phone + ', address=' + (deliveryType === 'delivery' ? formData.address : 'pickup'));
     const missingVars: string[] = [];
     if (!publicKey) missingVars.push('EXPO_PUBLIC_WOMPI_P');
     if (!redirectUrl) missingVars.push('EXPO_PUBLIC_WOMPI_REDIRECT_URL');
@@ -109,6 +111,7 @@ export default function CheckoutScreen() {
     console.log('[Wompi] Customer phone:', formData.phone);
     setWompiUrl(url);
     setShowWompi(true);
+    console.log('Calling handleCardPayment');
   };
 
 
