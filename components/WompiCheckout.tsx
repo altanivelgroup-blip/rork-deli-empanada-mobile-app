@@ -14,30 +14,29 @@ export default function WompiCheckout({ url, onClose, onSuccess }: WompiCheckout
 
   const handleNavigationStateChange = (navState: any) => {
     const { url: currentUrl } = navState ?? {};
-    console.log('[Wompi] WebView URL:', currentUrl);
+    console.log('[Wompi] Navigation URL:', currentUrl);
     if (!currentUrl) return;
 
     try {
       const parsed = new URL(currentUrl);
-      const idParam = parsed.searchParams.get('id') || parsed.searchParams.get('transactionId');
-      const status = parsed.searchParams.get('status') || parsed.searchParams.get('statusMessage');
-
+      
+      const idParam = parsed.searchParams.get('id');
       if (idParam) {
-        console.log('✅ Transaction ID detected:', idParam, 'status:', status);
+        console.log('[Wompi] ✅ Transaction ID detected:', idParam);
         onSuccess(idParam);
         return;
       }
 
-      if (/approved|APPROVED/i.test(currentUrl)) {
-        const match = currentUrl.match(/(id|transactionId)=([^&#]+)/i);
-        if (match && match[2]) {
-          onSuccess(match[2]);
+      const urlLower = currentUrl.toLowerCase();
+      if (urlLower.includes('approved') || urlLower.includes('success')) {
+        const match = currentUrl.match(/[?&]id=([^&#]+)/i);
+        if (match && match[1]) {
+          console.log('[Wompi] ✅ Transaction ID from approved URL:', match[1]);
+          onSuccess(match[1]);
         }
       }
     } catch (e) {
-      console.log('[Wompi] URL parse error, fallback match');
-      const match = String(currentUrl).match(/(?:id|transactionId)=([^&#]+)/i);
-      if (match && match[1]) onSuccess(match[1]);
+      console.log('[Wompi] URL parse error:', e);
     }
   };
 

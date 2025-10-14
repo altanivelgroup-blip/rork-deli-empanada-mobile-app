@@ -62,14 +62,14 @@ export default function CheckoutScreen() {
 
   const handleCardPayment = () => {
     const publicKey = process.env.EXPO_PUBLIC_WOMPI_P;
-    const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_R;
+    const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_REDIRECT_URL;
     const currency = process.env.EXPO_PUBLIC_CURRENC ?? 'COP';
-    const reference = `order_${Date.now()}`;
+    const reference = `DE${Date.now()}`;
     const cents = Math.round(total * 100);
 
     const missingVars: string[] = [];
     if (!publicKey) missingVars.push('EXPO_PUBLIC_WOMPI_P');
-    if (!redirectUrl) missingVars.push('EXPO_PUBLIC_WOMPI_R');
+    if (!redirectUrl) missingVars.push('EXPO_PUBLIC_WOMPI_REDIRECT_URL');
 
     if (missingVars.length > 0) {
       Alert.alert(
@@ -88,13 +88,17 @@ export default function CheckoutScreen() {
       'redirect-url': String(redirectUrl),
     });
 
-    params.append('customer-data[name]', formData.name || '');
-    params.append('customer-data[email]', `${formData.phone || ''}@example.com`);
-    params.append('customer-data[phone]', formData.phone || '');
+    if (formData.name) params.append('customer-data:name', formData.name);
+    if (formData.phone) {
+      params.append('customer-data:email', `${formData.phone}@deliempanada.com`);
+      params.append('customer-data:phone-number', formData.phone);
+    }
 
     const url = `https://checkout.wompi.co/p/?${params.toString()}`;
 
-    console.log('Opening Wompi URL:', url);
+    console.log('[Wompi] Opening checkout URL:', url);
+    console.log('[Wompi] Amount in cents:', cents);
+    console.log('[Wompi] Reference:', reference);
     setWompiUrl(url);
     setShowWompi(true);
   };
