@@ -17,8 +17,10 @@ const WompiCheckout: React.FC<WompiCheckoutProps> = ({ url, onClose, onSuccess }
   const handleNavigationStateChange = (navState: any) => {
     const currentUrl = navState.url;
     console.log('[WompiCheckout] Navigation to:', currentUrl);
+    console.log('[WompiCheckout] Navigation state:', JSON.stringify(navState, null, 2));
 
-    if (currentUrl.includes('confirmation') || currentUrl.includes('redirect')) {
+    // Check if navigating to the redirect URL (confirmation page)
+    if (currentUrl.includes('confirmation') || currentUrl.includes('redirect') || currentUrl.includes('deliempanada.com')) {
       try {
         const urlObj = new URL(currentUrl);
         const transactionId = urlObj.searchParams.get('id');
@@ -27,7 +29,8 @@ const WompiCheckout: React.FC<WompiCheckoutProps> = ({ url, onClose, onSuccess }
           console.log('[WompiCheckout] Transaction ID found:', transactionId);
           onSuccess(transactionId);
         } else {
-          console.log('[WompiCheckout] No transaction ID in URL');
+          console.log('[WompiCheckout] No transaction ID in URL, but reached confirmation page');
+          console.log('[WompiCheckout] Full URL:', currentUrl);
           onClose();
         }
       } catch (error) {
@@ -40,6 +43,21 @@ const WompiCheckout: React.FC<WompiCheckoutProps> = ({ url, onClose, onSuccess }
   const handleError = (syntheticEvent: any) => {
     const { nativeEvent } = syntheticEvent;
     console.error('[WompiCheckout] WebView error:', nativeEvent);
+    console.error('[WompiCheckout] Error details:', JSON.stringify(nativeEvent, null, 2));
+  };
+
+  const handleHttpError = (syntheticEvent: any) => {
+    const { nativeEvent } = syntheticEvent;
+    console.error('[WompiCheckout] HTTP error:', nativeEvent);
+    console.error('[WompiCheckout] HTTP error details:', JSON.stringify(nativeEvent, null, 2));
+  };
+
+  const handleLoadStart = (syntheticEvent: any) => {
+    console.log('[WompiCheckout] Load started:', syntheticEvent.nativeEvent.url);
+  };
+
+  const handleLoadEnd = (syntheticEvent: any) => {
+    console.log('[WompiCheckout] Load ended:', syntheticEvent.nativeEvent.url);
   };
 
   return (
@@ -56,7 +74,14 @@ const WompiCheckout: React.FC<WompiCheckoutProps> = ({ url, onClose, onSuccess }
           style={styles.webview}
           onNavigationStateChange={handleNavigationStateChange}
           onError={handleError}
+          onHttpError={handleHttpError}
+          onLoadStart={handleLoadStart}
+          onLoadEnd={handleLoadEnd}
           startInLoadingState={true}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          thirdPartyCookiesEnabled={true}
+          sharedCookiesEnabled={true}
           renderLoading={() => (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#CC0000" />

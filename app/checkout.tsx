@@ -115,28 +115,30 @@ export default function CheckoutScreen() {
     );
     console.log('🔒 [handleCardPayment] Signature generated:', signature);
 
-    const params = new URLSearchParams({
-      'public-key': String(publicKey),
-      'amount-in-cents': String(cents),
-      currency,
-      reference,
-      'redirect-url': String(redirectUrl),
-      'integrity': signature,
-    });
+    // Build URL manually to avoid URLSearchParams encoding colons in parameter names
+    // Wompi requires literal colons in parameter names like "signature:integrity"
+    const urlParams: string[] = [
+      `public-key=${encodeURIComponent(String(publicKey))}`,
+      `amount-in-cents=${encodeURIComponent(String(cents))}`,
+      `currency=${encodeURIComponent(currency)}`,
+      `reference=${encodeURIComponent(reference)}`,
+      `redirect-url=${encodeURIComponent(String(redirectUrl))}`,
+      `signature:integrity=${encodeURIComponent(signature)}`,
+    ];
 
     if (formData.name && formData.name.trim()) {
-      params.append('customer-data:full-name', formData.name.trim());
+      urlParams.push(`customer-data:full-name=${encodeURIComponent(formData.name.trim())}`);
     }
     
     if (formData.phone && formData.phone.trim()) {
       const cleanPhone = formData.phone.replace(/\D/g, '');
-      params.append('customer-data:phone-number', `+57${cleanPhone}`);
-      params.append('customer-data:phone-number-prefix', '+57');
-      params.append('customer-data:legal-id', cleanPhone);
-      params.append('customer-data:legal-id-type', 'CC');
+      urlParams.push(`customer-data:phone-number=${encodeURIComponent(`+57${cleanPhone}`)}`);
+      urlParams.push(`customer-data:phone-number-prefix=${encodeURIComponent('+57')}`);
+      urlParams.push(`customer-data:legal-id=${encodeURIComponent(cleanPhone)}`);
+      urlParams.push(`customer-data:legal-id-type=${encodeURIComponent('CC')}`);
     }
 
-    const url = `https://checkout.wompi.co/p/?${params.toString()}`;
+    const url = `https://checkout.wompi.co/p/?${urlParams.join('&')}`;
 
     console.log('🌐 [handleCardPayment] Generated URL:', url);
 
