@@ -121,7 +121,7 @@ export default function CheckoutScreen() {
       currency,
       reference,
       'redirect-url': String(redirectUrl),
-      'signature:integrity': signature,
+      'integrity': signature,
     });
 
     if (formData.name && formData.name.trim()) {
