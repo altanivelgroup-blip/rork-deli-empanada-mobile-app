@@ -6,19 +6,19 @@ import { Order, Employee, DailyStats, WeeklyStats, MonthlyStats, OrderStatus, No
 // Mock AsyncStorage for web compatibility
 const AsyncStorage = {
   getItem: async (key: string): Promise<string | null> => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(key);
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      return window.localStorage.getItem(key);
     }
     return null;
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(key, value);
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      window.localStorage.setItem(key, value);
     }
   },
   removeItem: async (key: string): Promise<void> => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(key);
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      window.localStorage.removeItem(key);
     }
   }
 };

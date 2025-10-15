@@ -438,16 +438,203 @@ export default function CheckoutScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {showWompi ? (
+      {showWompi && (
         <WompiCheckout
           url={wompiUrl}
           onClose={() => setShowWompi(false)}
           onSuccess={handlePaymentSuccess}
         />
-      ) : null}
-      {showWompi && console.log('🟢 [Render] Rendering WompiCheckout modal')}  // Log if conditional is true
+      )}
     </SafeAreaView>
   );
 }
 
-// ... (styles remain the same as before)
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  section: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
+    marginBottom: 16,
+  },
+  deliveryOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  deliveryOption: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deliveryOptionActive: {
+    borderColor: '#CC0000',
+    backgroundColor: '#FFF5F5',
+  },
+  deliveryOptionText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#666666',
+  },
+  deliveryOptionTextActive: {
+    color: '#CC0000',
+  },
+  deliveryFee: {
+    fontSize: 12,
+    color: '#999999',
+  },
+  branchOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  branchOption: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    gap: 8,
+  },
+  branchOptionActive: {
+    borderColor: '#CC0000',
+    backgroundColor: '#FFF5F5',
+  },
+  branchOptionText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#666666',
+  },
+  branchOptionTextActive: {
+    color: '#CC0000',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    gap: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  notesInput: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1A1A1A',
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  paymentOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  paymentOption: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    gap: 8,
+  },
+  paymentOptionActive: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#F1F8F4',
+  },
+  paymentOptionActiveBlue: {
+    borderColor: '#2196F3',
+    backgroundColor: '#F0F7FF',
+  },
+  paymentOptionText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#666666',
+  },
+  paymentOptionTextActiveGreen: {
+    color: '#4CAF50',
+  },
+  paymentOptionTextActiveBlue: {
+    color: '#2196F3',
+  },
+  paymentOptionSubtext: {
+    fontSize: 12,
+    color: '#999999',
+  },
+  totalSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#666666',
+  },
+  totalAmount: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: '#CC0000',
+  },
+  footer: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  submitButton: {
+    flex: 1,
+    backgroundColor: '#CC0000',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700' as const,
+  },
+  pedidosButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pedidosButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+});
