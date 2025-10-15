@@ -18,7 +18,6 @@ import { useAdmin } from '@/providers/AdminProvider';
 import WompiCheckout from '@/components/WompiCheckout';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import * as Crypto from 'expo-crypto';  // For SHA-256 hashing
 
 export default function CheckoutScreen() {
   const { getTotalPrice, clearCart, cart } = useCart();
@@ -79,16 +78,16 @@ export default function CheckoutScreen() {
 
     const publicKey = process.env.EXPO_PUBLIC_WOMPI_PUBLIC_KEY;
     const redirectUrl = process.env.EXPO_PUBLIC_WOMPI_REDIRECT_URL;
-    const integritySecret = process.env.EXPO_PUBLIC_WOMPI_INTEGRITY_SECRET;
     const currency = process.env.EXPO_PUBLIC_CURRENCY ?? 'COP';
+    const cloudFunctionUrl = process.env.EXPO_PUBLIC_CLOUD_FUNCTION_URL;
     const reference = `DE${Date.now()}`;
     const cents = Math.round(total * 100);
 
     const missingVars: string[] = [];
     if (!publicKey) missingVars.push('EXPO_PUBLIC_WOMPI_PUBLIC_KEY');
     if (!redirectUrl) missingVars.push('EXPO_PUBLIC_WOMPI_REDIRECT_URL');
-    if (!integritySecret) missingVars.push('EXPO_PUBLIC_WOMPI_INTEGRITY_SECRET');
     if (!currency) missingVars.push('EXPO_PUBLIC_CURRENCY');
+    if (!cloudFunctionUrl) missingVars.push('EXPO_PUBLIC_CLOUD_FUNCTION_URL');
 
     if (missingVars.length > 0) {
       console.log('❌ [handleCardPayment] Missing vars:', missingVars);
@@ -106,45 +105,72 @@ export default function CheckoutScreen() {
     console.log('🟢 [handleCardPayment] Reference:', reference);
     console.log('🟢 [handleCardPayment] Amount in cents:', cents);
 
-    console.log('🔒 [handleCardPayment] Generating integrity signature');
-    const signatureString = `${reference}${cents}${currency}${integritySecret}`;
-    const signature = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      signatureString,
-      { encoding: Crypto.CryptoEncoding.HEX }
-    );
-    console.log('🔒 [handleCardPayment] Signature generated:', signature);
+    try {
+      console.log('🔒 [handleCardPayment] Calling backend to generate signature');
+      
+      // Call the Firebase Cloud Function to generate the signature securely
+      const signatureResponse = await fetch(cloudFunctionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reference,
+          amountInCents: cents,
+          currency,
+        }),
+      });
 
-    // Build URL manually to avoid URLSearchParams encoding colons in parameter names
-    // Wompi requires literal colons in parameter names like "signature:integrity"
-    const urlParams: string[] = [
-      `public-key=${encodeURIComponent(String(publicKey))}`,
-      `amount-in-cents=${encodeURIComponent(String(cents))}`,
-      `currency=${encodeURIComponent(currency)}`,
-      `reference=${encodeURIComponent(reference)}`,
-      `redirect-url=${encodeURIComponent(String(redirectUrl))}`,
-      `signature:integrity=${encodeURIComponent(signature)}`,
-    ];
+      if (!signatureResponse.ok) {
+        const errorData = await signatureResponse.json();
+        console.error('❌ [handleCardPayment] Backend error:', errorData);
+        throw new Error(errorData.message || 'Error al generar la firma de pago');
+      }
 
-    if (formData.name && formData.name.trim()) {
-      urlParams.push(`customer-data:full-name=${encodeURIComponent(formData.name.trim())}`);
+      const signatureData = await signatureResponse.json();
+      const signature = signatureData.signature;
+      
+      console.log('✅ [handleCardPayment] Signature received from backend');
+      console.log('🔒 [handleCardPayment] Signature:', signature);
+
+      // Build URL manually to avoid URLSearchParams encoding colons in parameter names
+      // Wompi requires literal colons in parameter names like "signature:integrity"
+      const urlParams: string[] = [
+        `public-key=${encodeURIComponent(String(publicKey))}`,
+        `amount-in-cents=${encodeURIComponent(String(cents))}`,
+        `currency=${encodeURIComponent(currency)}`,
+        `reference=${encodeURIComponent(reference)}`,
+        `redirect-url=${encodeURIComponent(String(redirectUrl))}`,
+        `signature:integrity=${encodeURIComponent(signature)}`,
+      ];
+
+      if (formData.name && formData.name.trim()) {
+        urlParams.push(`customer-data:full-name=${encodeURIComponent(formData.name.trim())}`);
+      }
+      
+      if (formData.phone && formData.phone.trim()) {
+        const cleanPhone = formData.phone.replace(/\D/g, '');
+        urlParams.push(`customer-data:phone-number=${encodeURIComponent(`+57${cleanPhone}`)}`);
+        urlParams.push(`customer-data:phone-number-prefix=${encodeURIComponent('+57')}`);
+        urlParams.push(`customer-data:legal-id=${encodeURIComponent(cleanPhone)}`);
+        urlParams.push(`customer-data:legal-id-type=${encodeURIComponent('CC')}`);
+      }
+
+      const url = `https://checkout.wompi.co/p/?${urlParams.join('&')}`;
+
+      console.log('🌐 [handleCardPayment] Generated URL:', url);
+
+      setWompiUrl(url);
+      setShowWompi(true);
+      console.log('🟣 [handleCardPayment] Set showWompi to true and wompiUrl to:', url);
+      
+    } catch (error) {
+      console.error('❌ [handleCardPayment] Error:', error);
+      Alert.alert(
+        'Error de Pago',
+        'No se pudo procesar el pago. Por favor intenta de nuevo o selecciona pago en efectivo.',
+      );
     }
-    
-    if (formData.phone && formData.phone.trim()) {
-      const cleanPhone = formData.phone.replace(/\D/g, '');
-      urlParams.push(`customer-data:phone-number=${encodeURIComponent(`+57${cleanPhone}`)}`);
-      urlParams.push(`customer-data:phone-number-prefix=${encodeURIComponent('+57')}`);
-      urlParams.push(`customer-data:legal-id=${encodeURIComponent(cleanPhone)}`);
-      urlParams.push(`customer-data:legal-id-type=${encodeURIComponent('CC')}`);
-    }
-
-    const url = `https://checkout.wompi.co/p/?${urlParams.join('&')}`;
-
-    console.log('🌐 [handleCardPayment] Generated URL:', url);
-
-    setWompiUrl(url);
-    setShowWompi(true);
-    console.log('🟣 [handleCardPayment] Set showWompi to true and wompiUrl to:', url);
   };
 
   const handleCashOrder = async () => {
