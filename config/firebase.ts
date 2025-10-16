@@ -3,24 +3,18 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Your actual Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCDS1YVZoD1GWHjwlJaL7VTmcTeBJxk_uY",
-  authDomain: "deli-empanada-mobile-app.firebaseapp.com",
-  projectId: "deli-empanada-mobile-app",
-  storageBucket: "deli-empanada-mobile-app.firebasestorage.app",
-  messagingSenderId: "626108798932",
-  appId: "1:626108798932:web:eed7d0bd3a1ccbebab2841"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
-let app;
-try {
-  app = initializeApp(firebaseConfig);
-  console.log('✅ Firebase initialized successfully');
-} catch (error) {
-  console.error('❌ Firebase initialization failed:', error);
-}
+const app = initializeApp(firebaseConfig);
+console.log('✅ Firebase initialized successfully');
 
 // Initialize services
 const auth = getAuth(app);
