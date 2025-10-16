@@ -1,7 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -12,13 +12,26 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-console.log('✅ Firebase initialized successfully');
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
-// Initialize services
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+try {
+  const hasAllConfig = Object.values(firebaseConfig).every(val => val && val.length > 0);
+  
+  if (hasAllConfig) {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+    console.log('✅ Firebase initialized successfully');
+  } else {
+    console.warn('⚠️ Firebase config incomplete, running without Firebase');
+  }
+} catch (error) {
+  console.error('❌ Firebase initialization failed:', error);
+  console.warn('⚠️ App will continue without Firebase');
+}
 
 export { app, auth, db, storage };
