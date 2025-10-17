@@ -101,7 +101,7 @@ export default function AdminDashboardScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            // Stay in admin route, let AdminScreen handle the routing
+            router.replace('/admin');
           }
         }
       ]
