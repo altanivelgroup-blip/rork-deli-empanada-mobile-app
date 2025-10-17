@@ -29,7 +29,8 @@ import {
   User,
   ChefHat,
   Truck,
-  ArrowLeft
+  ArrowLeft,
+  Megaphone
 } from 'lucide-react-native';
 import { Order, OrderStatus } from '@/types/admin';
 import { router } from 'expo-router';
@@ -56,7 +57,7 @@ export default function AdminDashboardScreen() {
   } = useAdmin();
   
 
-  const [selectedTab, setSelectedTab] = useState<'orders' | 'analytics'>('orders');
+  const [selectedTab, setSelectedTab] = useState<'orders' | 'analytics' | 'offers'>('orders');
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -483,15 +484,27 @@ export default function AdminDashboardScreen() {
         </TouchableOpacity>
         
         {isManager && (
-          <TouchableOpacity
-            style={[styles.tab, selectedTab === 'analytics' && styles.activeTab]}
-            onPress={() => setSelectedTab('analytics')}
-          >
-            <BarChart3 size={20} color={selectedTab === 'analytics' ? '#CC0000' : '#666'} />
-            <Text style={[styles.tabText, selectedTab === 'analytics' && styles.activeTabText]}>
-              Estadísticas
-            </Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[styles.tab, selectedTab === 'analytics' && styles.activeTab]}
+              onPress={() => setSelectedTab('analytics')}
+            >
+              <BarChart3 size={20} color={selectedTab === 'analytics' ? '#CC0000' : '#666'} />
+              <Text style={[styles.tabText, selectedTab === 'analytics' && styles.activeTabText]}>
+                Estadísticas
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.tab, selectedTab === 'offers' && styles.activeTab]}
+              onPress={() => router.push('/admin-offers')}
+            >
+              <Megaphone size={20} color={selectedTab === 'offers' ? '#CC0000' : '#666'} />
+              <Text style={[styles.tabText, selectedTab === 'offers' && styles.activeTabText]}>
+                Ofertas
+              </Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
 

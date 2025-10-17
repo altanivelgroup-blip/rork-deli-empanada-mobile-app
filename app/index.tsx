@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShoppingBag, Truck } from 'lucide-react-native';
+import PromoBanner from '@/components/PromoBanner';
 
 const AsyncStorage = {
   getItem: async (key: string): Promise<string | null> => {
@@ -38,7 +39,7 @@ interface UserContext {
 export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     Animated.parallel([
@@ -57,7 +58,7 @@ export default function HomeScreen() {
   }, [fadeAnim, scaleAnim]);
 
   const handleLongPressStart = () => {
-    const timer = setTimeout(() => {
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
       router.push('/admin-login');
     }, 1500);
     setLongPressTimer(timer);
@@ -79,6 +80,7 @@ export default function HomeScreen() {
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
+      <PromoBanner />
       <Animated.View
         style={[
           styles.content,
