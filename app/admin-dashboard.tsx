@@ -62,6 +62,12 @@ export default function AdminDashboardScreen() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
+  useEffect(() => {
+    console.log('🔍 Current User:', currentUser);
+    console.log('🔍 Is Manager:', isManager);
+    console.log('🔍 User Role:', currentUser?.role);
+  }, [currentUser, isManager]);
+
   // No need to redirect - AdminScreen handles this
 
   // Auto-refresh orders every 30 seconds
@@ -493,6 +499,15 @@ export default function AdminDashboardScreen() {
             <LogOut size={20} color="#CC0000" />
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* DEBUG PANEL - TEMPORARY */}
+      <View style={{ backgroundColor: '#FFF9E6', padding: 10, borderBottomWidth: 1, borderColor: '#FFE082' }}>
+        <Text style={{ fontSize: 12, color: '#333' }}>DEBUG INFO:</Text>
+        <Text style={{ fontSize: 11, color: '#666' }}>Current User: {currentUser?.name} ({currentUser?.id})</Text>
+        <Text style={{ fontSize: 11, color: '#666' }}>Role: {currentUser?.role}</Text>
+        <Text style={{ fontSize: 11, color: '#666', fontWeight: 'bold' }}>Is Manager: {isManager ? 'YES ✅' : 'NO ❌'}</Text>
+        <Text style={{ fontSize: 11, color: '#666' }}>Should show Ofertas tab: {isManager ? 'YES' : 'NO'}</Text>
       </View>
 
       {/* Tab Navigation */}
