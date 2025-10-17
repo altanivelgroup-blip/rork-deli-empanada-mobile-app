@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { Crown, Store } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAdmin } from '@/providers/AdminProvider';
 
 const AsyncStorage = {
   getItem: async (key: string): Promise<string | null> => {
@@ -36,6 +37,7 @@ interface UserContext {
 }
 
 export default function AdminEntranceScreen() {
+  const { login } = useAdmin();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const [isLoading, setIsLoading] = useState(true);
@@ -102,21 +104,28 @@ export default function AdminEntranceScreen() {
     ]).start();
 
     try {
-      await AsyncStorage.setItem('userRole', context.role);
-      await AsyncStorage.setItem('userEmail', context.email);
-      if (context.branch) {
-        await AsyncStorage.setItem('userBranch', context.branch);
-      }
-
-      console.log('✅ User context saved:', context);
-
-      setTimeout(() => {
-        if (context.role === 'admin') {
-          router.replace('/estadisticas');
-        } else {
-          router.replace(`/pedidos?branch=${context.branch}`);
+      const password = context.role === 'admin' ? 'admin123' : 'work123';
+      const result = await login(context.email, password);
+      
+      if (result.success && result.user) {
+        await AsyncStorage.setItem('userRole', context.role);
+        await AsyncStorage.setItem('userEmail', context.email);
+        if (context.branch) {
+          await AsyncStorage.setItem('userBranch', context.branch);
         }
-      }, 200);
+
+        console.log('✅ User context saved:', context);
+
+        setTimeout(() => {
+          if (context.role === 'admin') {
+            router.replace('/estadisticas');
+          } else {
+            router.replace(`/pedidos?branch=${context.branch}`);
+          }
+        }, 200);
+      } else {
+        console.error('❌ Login failed:', result.error);
+      }
     } catch (error) {
       console.error('❌ Error saving user context:', error);
     }

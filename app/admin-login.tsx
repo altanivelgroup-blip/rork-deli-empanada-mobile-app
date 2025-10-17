@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Lock, User, Eye, EyeOff } from 'lucide-react-native';
+import { useAdmin } from '@/providers/AdminProvider';
 
 const AsyncStorage = {
   getItem: async (key: string): Promise<string | null> => {
@@ -35,6 +36,7 @@ const AsyncStorage = {
 };
 
 export default function AdminLoginScreen() {
+  const { login } = useAdmin();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -50,7 +52,6 @@ export default function AdminLoginScreen() {
 
     setIsLoading(true);
     try {
-      await AsyncStorage.removeItem('admin_current_user');
       await AsyncStorage.removeItem('userRole');
       await AsyncStorage.removeItem('userEmail');
       await AsyncStorage.removeItem('userBranch');
@@ -58,84 +59,28 @@ export default function AdminLoginScreen() {
       const emailLower = email.trim().toLowerCase();
       console.log('🔍 Checking credentials for:', emailLower);
       
-      if (emailLower === 'maria@deliempanada.com' && password === 'admin123') {
-        console.log('✅ Owner credentials matched');
-        const user = {
-          id: 'mgr_1',
-          name: 'María González',
-          email: 'maria@deliempanada.com',
-          role: 'manager',
-          isActive: true,
-          permissions: {
-            viewOrders: true,
-            manageOrders: true,
-            viewAnalytics: true,
-            viewRevenue: true,
-            manageEmployees: true
-          }
-        };
-        await AsyncStorage.setItem('admin_current_user', JSON.stringify(user));
-        await AsyncStorage.setItem('userRole', 'admin');
-        await AsyncStorage.setItem('userEmail', emailLower);
-        console.log('✅ Owner logged in, navigating to estadisticas');
-        router.replace('/estadisticas');
-      } else if (emailLower === 'employee1' || emailLower === 'employee1@deliempanada.com') {
-        console.log('🔍 Employee1 detected, checking password');
-        if (password === 'work123') {
-          const user = {
-            id: 'emp_1',
-            name: 'Empleado Norte',
-            email: 'employee1@deliempanada.com',
-            role: 'kitchen',
-            isActive: true,
-            permissions: {
-              viewOrders: true,
-              manageOrders: true,
-              viewAnalytics: false,
-              viewRevenue: false,
-              manageEmployees: false
-            }
-          };
-          await AsyncStorage.setItem('admin_current_user', JSON.stringify(user));
+      const result = await login(emailLower, password);
+      
+      if (result.success && result.user) {
+        console.log('✅ Login successful:', result.user.role);
+        
+        if (result.user.role === 'manager') {
+          await AsyncStorage.setItem('userRole', 'admin');
+          await AsyncStorage.setItem('userEmail', result.user.email);
+          console.log('✅ Manager logged in, navigating to estadisticas');
+          router.replace('/estadisticas');
+        } else if (result.user.role === 'kitchen') {
           await AsyncStorage.setItem('userRole', 'employee');
-          await AsyncStorage.setItem('userEmail', 'employee1@deliempanada.com');
-          await AsyncStorage.setItem('userBranch', 'Norte');
-          console.log('✅ Employee Norte logged in, navigating to pedidos');
-          router.replace('/pedidos?branch=Norte');
-        } else {
-          console.log('❌ Wrong password for employee1');
-          Alert.alert('Error', 'Contraseña incorrecta');
-        }
-      } else if (emailLower === 'employee2' || emailLower === 'employee2@deliempanada.com') {
-        console.log('🔍 Employee2 detected, checking password');
-        if (password === 'work123') {
-          const user = {
-            id: 'emp_2',
-            name: 'Empleado Sur',
-            email: 'employee2@deliempanada.com',
-            role: 'kitchen',
-            isActive: true,
-            permissions: {
-              viewOrders: true,
-              manageOrders: true,
-              viewAnalytics: false,
-              viewRevenue: false,
-              manageEmployees: false
-            }
-          };
-          await AsyncStorage.setItem('admin_current_user', JSON.stringify(user));
-          await AsyncStorage.setItem('userRole', 'employee');
-          await AsyncStorage.setItem('userEmail', 'employee2@deliempanada.com');
-          await AsyncStorage.setItem('userBranch', 'Sur');
-          console.log('✅ Employee Sur logged in, navigating to pedidos');
-          router.replace('/pedidos?branch=Sur');
-        } else {
-          console.log('❌ Wrong password for employee2');
-          Alert.alert('Error', 'Contraseña incorrecta');
+          await AsyncStorage.setItem('userEmail', result.user.email);
+          
+          const branch = result.user.id === 'emp_1' ? 'Norte' : 'Sur';
+          await AsyncStorage.setItem('userBranch', branch);
+          console.log(`✅ Employee logged in (${branch}), navigating to pedidos`);
+          router.replace(`/pedidos?branch=${branch}`);
         }
       } else {
-        console.log('❌ No matching credentials found');
-        Alert.alert('Error', 'Credenciales inválidas');
+        console.log('❌ Login failed:', result.error);
+        Alert.alert('Error', result.error || 'Credenciales inválidas');
       }
     } catch (error) {
       console.error('❌ Error during login:', error);
@@ -151,7 +96,7 @@ export default function AdminLoginScreen() {
   };
 
   const fillEmployeeCredentials = () => {
-    setEmail('employee1');
+    setEmail('employee1@deliempanada.com');
     setPassword('work123');
   };
 
