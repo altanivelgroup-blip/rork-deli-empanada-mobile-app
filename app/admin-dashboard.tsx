@@ -598,6 +598,18 @@ export default function AdminDashboardScreen() {
               <Text style={styles.emptyStateText}>No hay pedidos disponibles</Text>
             </View>
           )}
+
+          {/* Sign Out Button */}
+          <View style={styles.signOutContainer}>
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleLogout}
+              testID="sign-out-button"
+            >
+              <LogOut size={20} color="#FFFFFF" />
+              <Text style={styles.signOutButtonText}>Cerrar Sesión</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       ) : selectedTab === 'analytics' ? (
         renderAnalytics()
@@ -1070,5 +1082,30 @@ const styles = StyleSheet.create({
   offersActionDescription: {
     fontSize: 14,
     color: '#FFD700'
+  },
+  signOutContainer: {
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+    marginTop: 20
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#CC0000',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4
+  },
+  signOutButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF'
   }
 });
