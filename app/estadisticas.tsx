@@ -19,7 +19,6 @@ import {
   CheckCircle,
   Clock,
   Package,
-  ArrowLeft,
   BarChart3,
   LogOut,
   Target,
@@ -193,9 +192,6 @@ export default function EstadisticasScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={Colors.light.background} />
-        </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>DELI EMPANADA</Text>
           <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
@@ -342,9 +338,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-  },
-  backButton: {
-    padding: 4,
   },
   headerCenter: {
     alignItems: 'center',
