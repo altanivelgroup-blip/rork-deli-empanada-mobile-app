@@ -310,6 +310,30 @@ export default function AdminDashboardScreen() {
     </View>
   );
 
+  const renderOffers = () => {
+    return (
+      <ScrollView style={styles.analyticsContainer}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📢 Gestión de Ofertas</Text>
+          <Text style={styles.sectionDescription}>
+            Desde aquí puedes crear y gestionar banners promocionales.
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.offersActionButton}
+            onPress={() => router.push('/admin-offers')}
+          >
+            <Megaphone size={24} color="#FFFFFF" />
+            <View style={styles.offersActionContent}>
+              <Text style={styles.offersActionTitle}>Editar Banner Promocional</Text>
+              <Text style={styles.offersActionDescription}>Crear y publicar ofertas para los clientes</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  };
+
   const renderAnalytics = () => {
     if (!hasPermission('viewAnalytics')) {
       return (
@@ -497,7 +521,7 @@ export default function AdminDashboardScreen() {
             
             <TouchableOpacity
               style={[styles.tab, selectedTab === 'offers' && styles.activeTab]}
-              onPress={() => router.push('/admin-offers')}
+              onPress={() => setSelectedTab('offers')}
             >
               <Megaphone size={20} color={selectedTab === 'offers' ? '#CC0000' : '#666'} />
               <Text style={[styles.tabText, selectedTab === 'offers' && styles.activeTabText]}>
@@ -512,7 +536,6 @@ export default function AdminDashboardScreen() {
       {selectedTab === 'orders' ? (
         <ScrollView
           style={styles.ordersContainer}
-  
         >
           {/* Quick Stats */}
           <View style={styles.quickStats}>
@@ -561,8 +584,10 @@ export default function AdminDashboardScreen() {
             </View>
           )}
         </ScrollView>
-      ) : (
+      ) : selectedTab === 'analytics' ? (
         renderAnalytics()
+      ) : (
+        renderOffers()
       )}
 
       {/* Order Detail Modal */}
@@ -992,5 +1017,43 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 20
+  },
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 20
+  },
+  offersActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#CC0000',
+    padding: 20,
+    borderRadius: 12,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  offersActionContent: {
+    flex: 1
+  },
+  offersActionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4
+  },
+  offersActionDescription: {
+    fontSize: 14,
+    color: '#FFD700'
   }
 });
