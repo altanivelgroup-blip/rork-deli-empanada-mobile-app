@@ -8,7 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -164,7 +165,11 @@ export default function AdminLoginScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <Lock size={48} color="#CC0000" />
+              <Image 
+                source={{ uri: 'https://cdn.abacus.ai/images/f59df707-6592-4718-84b0-8e86191a0daf.png' }}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.title}>DELI EMPANADA</Text>
             <Text style={styles.subtitle}>Panel de Administración</Text>
@@ -281,6 +286,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3
+  },
+  logo: {
+    width: 60,
+    height: 60
   },
   title: {
     fontSize: 28,
