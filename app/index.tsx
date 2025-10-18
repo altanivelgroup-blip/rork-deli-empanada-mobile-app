@@ -123,6 +123,15 @@ export default function HomeScreen() {
         </View>
 
         <Text style={styles.hours}>Horario: Lun-Sab 8:30 AM – 6:30 PM</Text>
+        
+        {/* Admin Access Button (fallback for devices where long press doesn't work) */}
+        <TouchableOpacity
+          style={styles.adminAccessButton}
+          onPress={() => router.push('/admin-entrance')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.adminAccessText}>🔐</Text>
+        </TouchableOpacity>
       </Animated.View>
 
 
@@ -236,6 +245,25 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     fontWeight: '500',
     marginTop: 8,
+  },
+  adminAccessButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  adminAccessText: {
+    fontSize: 24,
   },
 
 });
