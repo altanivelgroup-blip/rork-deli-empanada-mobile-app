@@ -5,10 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAdmin } from '@/providers/AdminProvider';
+import Colors from '@/constants/colors';
 import {
   Clock,
   CheckCircle,
@@ -19,7 +21,8 @@ import {
   BarChart3,
   Calendar,
   Target,
-  ArrowLeft
+  ArrowLeft,
+  LogIn
 } from 'lucide-react-native';
 import { router, Stack } from 'expo-router';
 
@@ -171,41 +174,32 @@ export default function AdminDashboardScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Stack.Screen
         options={{
-          headerStyle: {
-            backgroundColor: '#CC0000'
-          },
-          headerTintColor: '#FFFFFF',
-          headerTitleAlign: 'center',
-          headerTitle: () => (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>DELI EMPANADA</Text>
-              <Text style={{ color: '#FFE0E0', fontSize: 12 }}>
-                🍴 Panel de Gerencia
-              </Text>
-            </View>
-          ),
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: 8 }}>
-              <ArrowLeft size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <TouchableOpacity onPress={handleLogout} style={{ padding: 8, marginRight: 8 }} testID="sign-out-button">
-              <LogOut size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          )
+          headerShown: false
         }}
       />
+
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerIconButton}>
+          <ArrowLeft size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>DELI EMPANADA</Text>
+          <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
+        </View>
+        <TouchableOpacity onPress={handleLogout} style={styles.headerIconButton} testID="sign-out-button">
+          <LogIn size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, selectedTab === 'orders' && styles.activeTab]}
           onPress={() => setSelectedTab('orders')}
         >
-          <Package size={20} color={selectedTab === 'orders' ? '#CC0000' : '#666'} />
+          <Package size={18} color={selectedTab === 'orders' ? Colors.light.primary : Colors.light.textLight} />
           <Text style={[styles.tabText, selectedTab === 'orders' && styles.activeTabText]}>
             Pedidos ({orders.length})
           </Text>
@@ -215,7 +209,7 @@ export default function AdminDashboardScreen() {
           style={[styles.tab, selectedTab === 'analytics' && styles.activeTab]}
           onPress={() => setSelectedTab('analytics')}
         >
-          <BarChart3 size={20} color={selectedTab === 'analytics' ? '#CC0000' : '#666'} />
+          <BarChart3 size={18} color={selectedTab === 'analytics' ? Colors.light.primary : Colors.light.textLight} />
           <Text style={[styles.tabText, selectedTab === 'analytics' && styles.activeTabText]}>
             Estadísticas
           </Text>
@@ -242,52 +236,110 @@ export default function AdminDashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5'
+    backgroundColor: Colors.light.surface
+  },
+  header: {
+    backgroundColor: Colors.light.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 4
+      }
+    })
+  },
+  headerIconButton: {
+    padding: 8,
+    width: 40,
+    height: 40,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: '#FFFFFF',
+    letterSpacing: 0.5
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#FFE0E0',
+    marginTop: 2
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0'
+    backgroundColor: Colors.light.background,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.light.border
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    gap: 6,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent'
   },
   activeTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: '#CC0000'
+    borderBottomColor: Colors.light.primary
   },
   tabText: {
-    marginLeft: 8,
     fontSize: 14,
-    color: '#666'
+    color: Colors.light.textLight,
+    fontWeight: '600' as const
   },
   activeTabText: {
-    color: '#CC0000',
-    fontWeight: 'bold' as const
+    color: Colors.light.primary,
+    fontWeight: '700' as const
   },
   ordersView: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32
+    padding: 32,
+    backgroundColor: Colors.light.surface
   },
   placeholderText: {
     fontSize: 16,
-    color: '#666',
+    color: Colors.light.textLight,
     textAlign: 'center' as const,
     marginBottom: 24
   },
   navigateButton: {
-    backgroundColor: '#CC0000',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8
+    borderRadius: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(204,0,0,0.2)'
+      },
+      default: {
+        shadowColor: Colors.light.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3
+      }
+    })
   },
   navigateButtonText: {
     color: '#FFFFFF',
@@ -296,118 +348,143 @@ const styles = StyleSheet.create({
   },
   analyticsContainer: {
     flex: 1,
-    backgroundColor: '#F5F5F5'
+    backgroundColor: Colors.light.surface
   },
   statsSection: {
-    padding: 16
+    paddingHorizontal: 16,
+    paddingVertical: 12
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 16
+    marginBottom: 14
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold' as const,
-    color: '#333'
+    fontWeight: '700' as const,
+    color: Colors.light.text
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12
+    gap: 10
   },
   statCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: Colors.light.background,
+    borderRadius: 10,
+    padding: 18,
     flex: 1,
-    minWidth: '45%',
+    minWidth: '47%',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 3
+      }
+    })
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: 'bold' as const,
-    color: '#333'
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: Colors.light.text
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center' as const
+    fontSize: 11,
+    color: Colors.light.textLight,
+    textAlign: 'center' as const,
+    fontWeight: '500' as const
   },
   weeklyGrid: {
     flexDirection: 'row',
-    gap: 12
+    gap: 10
   },
   weeklyCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: Colors.light.background,
+    borderRadius: 10,
+    padding: 18,
     alignItems: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
+    gap: 6,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 3
+      }
+    })
   },
   weeklyValue: {
-    fontSize: 16,
-    fontWeight: 'bold' as const,
-    color: '#333',
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: Colors.light.text,
     textAlign: 'center' as const
   },
   weeklyLabel: {
     fontSize: 11,
-    color: '#666',
-    textAlign: 'center' as const
+    color: Colors.light.textLight,
+    textAlign: 'center' as const,
+    fontWeight: '500' as const
   },
   topItemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: Colors.light.background,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 2,
+        elevation: 2
+      }
+    })
   },
   topItemRank: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFD700',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.light.accent,
     justifyContent: 'center' as const,
     alignItems: 'center' as const
   },
   topItemRankText: {
-    fontSize: 16,
-    fontWeight: 'bold' as const,
-    color: '#FFFFFF'
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: Colors.light.background
   },
   topItemInfo: {
     flex: 1
   },
   topItemName: {
-    fontSize: 16,
-    fontWeight: 'bold' as const,
-    color: '#333'
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: Colors.light.text,
+    marginBottom: 2
   },
   topItemStats: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 2
+    color: Colors.light.textLight,
+    fontWeight: '500' as const
   }
 });
