@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,34 +13,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ShoppingBag, Truck } from 'lucide-react-native';
 import PromoBanner from '@/components/PromoBanner';
 
-const AsyncStorage = {
-  getItem: async (key: string): Promise<string | null> => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(key);
-    }
-    return null;
-  },
-  setItem: async (key: string, value: string): Promise<void> => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(key, value);
-    }
-  },
-};
-
-type UserRole = 'admin' | 'employee';
-type Branch = 'Norte' | 'Sur' | null;
-
-interface UserContext {
-  role: UserRole;
-  email: string;
-  branch: Branch;
-}
-
 export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -57,18 +32,9 @@ export default function HomeScreen() {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
-  const handleLongPressStart = () => {
-    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-      router.push('/admin-login');
-    }, 1500);
-    setLongPressTimer(timer);
-  };
-
-  const handleLongPressEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
+  const handleLongPress = () => {
+    console.log('Long press detected - navigating to admin login');
+    router.push('/admin-login');
   };
 
 
@@ -92,8 +58,8 @@ export default function HomeScreen() {
       >
         <Pressable
           style={styles.logoContainer}
-          onPressIn={handleLongPressStart}
-          onPressOut={handleLongPressEnd}
+          onLongPress={handleLongPress}
+          delayLongPress={1500}
         >
           <View style={styles.logoBadge}>
             <Image
