@@ -192,7 +192,7 @@ export default function EstadisticasScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerCenter}>
+        <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>DELI EMPANADA</Text>
           <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
         </View>
@@ -339,8 +339,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
-  headerCenter: {
-    alignItems: 'center',
+  headerLeft: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 20,
