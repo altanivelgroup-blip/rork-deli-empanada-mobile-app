@@ -180,7 +180,7 @@ export default function AdminDashboardScreen() {
           headerTintColor: '#FFFFFF',
           headerTitleAlign: 'center',
           headerTitle: () => (
-            <View style={{ alignItems: 'center' }}>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>DELI EMPANADA</Text>
               <Text style={{ color: '#FFE0E0', fontSize: 12 }}>
                 🍴 Panel de Gerencia
