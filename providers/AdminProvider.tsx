@@ -6,19 +6,31 @@ import { Order, Employee, DailyStats, WeeklyStats, MonthlyStats, OrderStatus, No
 // Mock AsyncStorage for web compatibility
 const AsyncStorage = {
   getItem: async (key: string): Promise<string | null> => {
-    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-      return window.localStorage.getItem(key);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
+    } catch (error) {
+      console.error('AsyncStorage.getItem error:', key, error);
     }
     return null;
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-      window.localStorage.setItem(key, value);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch (error) {
+      console.error('AsyncStorage.setItem error:', key, error);
     }
   },
   removeItem: async (key: string): Promise<void> => {
-    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-      window.localStorage.removeItem(key);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (error) {
+      console.error('AsyncStorage.removeItem error:', key, error);
     }
   }
 };
@@ -223,6 +235,8 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
   }, [updateOrderStatus]);
 
   const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; user?: Employee; error?: string }> => {
+    console.log('🔐 AdminProvider.login called:', { email, passwordLength: password.length });
+    
     // Mock login with role-based authentication
     const credentials = {
       'maria@deliempanada.com': { password: 'admin123', role: 'manager', name: 'María González', id: 'mgr_1' },
@@ -230,7 +244,11 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
       'employee2@deliempanada.com': { password: 'work123', role: 'kitchen', name: 'Empleado Sur', id: 'emp_2' }
     };
 
+    console.log('🔍 Looking up credential for:', email);
     const credential = credentials[email as keyof typeof credentials];
+    console.log('🔍 Credential found:', credential ? 'yes' : 'no');
+    console.log('🔍 Password match:', credential && credential.password === password ? 'yes' : 'no');
+    
     if (credential && credential.password === password) {
       const employee: Employee = {
         id: credential.id,
@@ -248,10 +266,12 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
       };
       
       setCurrentUser(employee);
-      AsyncStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(employee));
+      await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(employee));
+      console.log('✅ Login successful, user set:', employee.role);
       return { success: true, user: employee };
     }
     
+    console.log('❌ Login failed: invalid credentials');
     return { success: false, error: 'Credenciales inválidas' };
   }, []);
 

@@ -18,19 +18,31 @@ import { useAdmin } from '@/providers/AdminProvider';
 
 const AsyncStorage = {
   getItem: async (key: string): Promise<string | null> => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(key);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
+    } catch (error) {
+      console.error('AsyncStorage.getItem error:', error);
     }
     return null;
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(key, value);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch (error) {
+      console.error('AsyncStorage.setItem error:', error);
     }
   },
   removeItem: async (key: string): Promise<void> => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(key);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (error) {
+      console.error('AsyncStorage.removeItem error:', error);
     }
   },
 };
@@ -43,7 +55,7 @@ export default function AdminLoginScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleLogin = async () => {
-    console.log('🔐 Login attempt:', { email, passwordLength: password.length });
+    console.log('🔐 Login attempt:', { email, passwordLength: password.length, platform: Platform.OS });
     
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Por favor ingresa email y contraseña');
@@ -58,6 +70,7 @@ export default function AdminLoginScreen() {
       
       const emailLower = email.trim().toLowerCase();
       console.log('🔍 Checking credentials for:', emailLower);
+      console.log('🔍 Available credentials:', ['maria@deliempanada.com', 'employee1@deliempanada.com', 'employee2@deliempanada.com']);
       
       const result = await login(emailLower, password);
       
