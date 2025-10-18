@@ -58,77 +58,13 @@ export default function AdminEntranceScreen() {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
-  const checkExistingUser = useCallback(async () => {
-    try {
-      const [role, email, branch] = await Promise.all([
-        AsyncStorage.getItem('userRole'),
-        AsyncStorage.getItem('userEmail'),
-        AsyncStorage.getItem('userBranch'),
-      ]);
-
-      if (role && email) {
-        console.log('✅ Existing user found:', { role, email, branch });
-        if (role === 'admin') {
-          router.replace('/estadisticas');
-        } else {
-          router.replace(`/pedidos?branch=${branch || 'Norte'}`);
-        }
-        return;
-      }
-    } catch (error) {
-      console.error('❌ Error checking existing user:', error);
-    } finally {
-      setIsLoading(false);
-      startAnimations();
-    }
+  useEffect(() => {
+    setIsLoading(false);
+    startAnimations();
   }, [startAnimations]);
 
-  useEffect(() => {
-    checkExistingUser();
-  }, [checkExistingUser]);
-
-  const handleRoleSelection = async (context: UserContext) => {
-    const buttonScale = new Animated.Value(1);
-    
-    Animated.sequence([
-      Animated.timing(buttonScale, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    try {
-      const password = context.role === 'admin' ? 'admin123' : 'work123';
-      const result = await login(context.email, password);
-      
-      if (result.success && result.user) {
-        await AsyncStorage.setItem('userRole', context.role);
-        await AsyncStorage.setItem('userEmail', context.email);
-        if (context.branch) {
-          await AsyncStorage.setItem('userBranch', context.branch);
-        }
-
-        console.log('✅ User context saved:', context);
-
-        setTimeout(() => {
-          if (context.role === 'admin') {
-            router.replace('/estadisticas');
-          } else {
-            router.replace(`/pedidos?branch=${context.branch}`);
-          }
-        }, 200);
-      } else {
-        console.error('❌ Login failed:', result.error);
-      }
-    } catch (error) {
-      console.error('❌ Error saving user context:', error);
-    }
+  const handleRoleSelection = () => {
+    router.push('/admin-login');
   };
 
   if (isLoading) {
@@ -184,13 +120,7 @@ export default function AdminEntranceScreen() {
           <View style={styles.buttonsContainer}>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() =>
-                handleRoleSelection({
-                  role: 'admin',
-                  email: 'maria@deliempanada.com',
-                  branch: null,
-                })
-              }
+              onPress={handleRoleSelection}
             >
               <LinearGradient
                 colors={['#FFD700', '#FFA500']}
@@ -206,13 +136,7 @@ export default function AdminEntranceScreen() {
 
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() =>
-                handleRoleSelection({
-                  role: 'employee',
-                  email: 'employee1@deliempanada.com',
-                  branch: 'Norte',
-                })
-              }
+              onPress={handleRoleSelection}
             >
               <LinearGradient
                 colors={['#FF8C00', '#FF6B00']}
@@ -228,13 +152,7 @@ export default function AdminEntranceScreen() {
 
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() =>
-                handleRoleSelection({
-                  role: 'employee',
-                  email: 'employee2@deliempanada.com',
-                  branch: 'Sur',
-                })
-              }
+              onPress={handleRoleSelection}
             >
               <LinearGradient
                 colors={['#CC0000', '#990000']}
