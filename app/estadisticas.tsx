@@ -23,6 +23,7 @@ import {
   LogOut,
   Target,
   Calendar,
+  ArrowLeft,
 } from 'lucide-react-native';
 
 export default function EstadisticasScreen() {
@@ -192,15 +193,16 @@ export default function EstadisticasScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color={Colors.light.background} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>DELI EMPANADA</Text>
           <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={handleLogout} style={styles.iconButton}>
-            <LogOut size={20} color={Colors.light.background} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={handleLogout} style={styles.iconButton}>
+          <LogOut size={20} color={Colors.light.background} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.tabBar}>
@@ -339,23 +341,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
-  headerLeft: {
+  backButton: {
+    padding: 4,
+  },
+  headerCenter: {
     flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold' as const,
     color: Colors.light.background,
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.light.background,
     opacity: 0.8,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   iconButton: {
     padding: 4,
