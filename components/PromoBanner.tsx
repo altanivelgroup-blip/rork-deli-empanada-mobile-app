@@ -22,11 +22,16 @@ export default function PromoBanner() {
       return;
     }
 
+    const timeoutId = setTimeout(() => {
+      console.warn('Banner loading timeout');
+    }, 3000);
+
     const bannerRef = doc(db, 'banners', 'current');
     
     const unsubscribe = onSnapshot(
       bannerRef,
       (docSnap) => {
+        clearTimeout(timeoutId);
         if (docSnap.exists()) {
           const data = docSnap.data() as PromoBannerType;
           
@@ -68,11 +73,15 @@ export default function PromoBanner() {
         }
       },
       (error) => {
+        clearTimeout(timeoutId);
         console.error('Error loading banner:', error);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, [fadeAnim, slideAnim]);
 
   if (!banner) {

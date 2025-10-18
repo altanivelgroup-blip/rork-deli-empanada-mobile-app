@@ -25,17 +25,26 @@ export const [FirebaseProvider, useFirebase] = createContextHook<FirebaseContext
       setLoading(false);
       return;
     }
+
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
     
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+      clearTimeout(timeoutId);
       if (authUser && (!authUser.email || authUser.email.trim().length === 0)) {
         console.error('Invalid user data');
+        setLoading(false);
         return;
       }
       setUser(authUser);
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
