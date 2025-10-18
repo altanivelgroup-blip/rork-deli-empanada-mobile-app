@@ -180,6 +180,8 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     textAlign: 'center',
     marginTop: 16,
+    width: '100%',
+    alignSelf: 'center',
   },
   subtitle: {
     fontSize: 36,
@@ -188,6 +190,8 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
     textAlign: 'center',
     marginBottom: 32,
+    width: '100%',
+    alignSelf: 'center',
   },
   tagline: {
     fontSize: 18,
