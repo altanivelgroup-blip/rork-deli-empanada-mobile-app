@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Animated,
   Image,
-  Pressable,
+  PanResponder,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +16,8 @@ import PromoBanner from '@/components/PromoBanner';
 export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -32,10 +34,32 @@ export default function HomeScreen() {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
-  const handleLongPress = () => {
-    console.log('Long press detected - navigating to admin login');
-    router.push('/admin-login');
-  };
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        console.log('Touch started on logo');
+        longPressTimer.current = setTimeout(() => {
+          console.log('Long press detected - navigating to admin entrance');
+          router.push('/admin-entrance');
+        }, 1500);
+      },
+      onPanResponderRelease: () => {
+        console.log('Touch released');
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+      },
+      onPanResponderTerminate: () => {
+        console.log('Touch terminated');
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+      },
+    })
+  ).current;
 
 
 
@@ -56,10 +80,9 @@ export default function HomeScreen() {
           },
         ]}
       >
-        <Pressable
+        <View
           style={styles.logoContainer}
-          onLongPress={handleLongPress}
-          delayLongPress={1500}
+          {...panResponder.panHandlers}
         >
           <View style={styles.logoBadge}>
             <Image
@@ -70,7 +93,7 @@ export default function HomeScreen() {
               resizeMode="contain"
             />
           </View>
-        </Pressable>
+        </View>
 
         <Text style={styles.title}>DELI</Text>
         <Text style={styles.subtitle}>EMPANADA</Text>
