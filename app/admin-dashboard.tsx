@@ -182,15 +182,17 @@ export default function AdminDashboardScreen() {
       />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerIconButton}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.headerIconButton} />
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>DELI EMPANADA</Text>
           <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.headerIconButton} testID="sign-out-button">
-          <LogIn size={22} color="#FFFFFF" />
+        <TouchableOpacity 
+          onPress={() => router.push('/pedidos')} 
+          style={styles.pedidosPillButton}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.pedidosPillText}>Pedidos</Text>
         </TouchableOpacity>
       </View>
 
@@ -264,6 +266,29 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center' as const,
     justifyContent: 'center' as const
+  },
+  pedidosPillButton: {
+    backgroundColor: '#27AE60',
+    borderRadius: 9999,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2
+      }
+    })
+  },
+  pedidosPillText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600' as const
   },
   headerCenter: {
     flex: 1,
