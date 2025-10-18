@@ -137,7 +137,6 @@ export default function AdminOffersScreen() {
           <ArrowLeft size={24} color="#CC0000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestionar Ofertas</Text>
-        <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content}>
@@ -276,12 +275,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0'
+    borderBottomColor: '#E0E0E0',
+    gap: 12
   },
   backButton: {
     padding: 8,
@@ -292,9 +291,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#CC0000'
-  },
-  placeholder: {
-    width: 40
   },
   loadingContainer: {
     flex: 1,
