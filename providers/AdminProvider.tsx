@@ -2,38 +2,7 @@ import React from 'react';
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Order, Employee, DailyStats, WeeklyStats, MonthlyStats, OrderStatus, NotificationSettings } from '@/types/admin';
-
-// Mock AsyncStorage for web compatibility
-const AsyncStorage = {
-  getItem: async (key: string): Promise<string | null> => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return window.localStorage.getItem(key);
-      }
-    } catch (error) {
-      console.error('AsyncStorage.getItem error:', key, error);
-    }
-    return null;
-  },
-  setItem: async (key: string, value: string): Promise<void> => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(key, value);
-      }
-    } catch (error) {
-      console.error('AsyncStorage.setItem error:', key, error);
-    }
-  },
-  removeItem: async (key: string): Promise<void> => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.removeItem(key);
-      }
-    } catch (error) {
-      console.error('AsyncStorage.removeItem error:', key, error);
-    }
-  }
-};
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
   ORDERS: 'admin_orders',

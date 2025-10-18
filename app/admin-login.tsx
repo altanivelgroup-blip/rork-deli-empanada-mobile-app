@@ -15,37 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Lock, User, Eye, EyeOff } from 'lucide-react-native';
 import { useAdmin } from '@/providers/AdminProvider';
-
-const AsyncStorage = {
-  getItem: async (key: string): Promise<string | null> => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return window.localStorage.getItem(key);
-      }
-    } catch (error) {
-      console.error('AsyncStorage.getItem error:', error);
-    }
-    return null;
-  },
-  setItem: async (key: string, value: string): Promise<void> => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(key, value);
-      }
-    } catch (error) {
-      console.error('AsyncStorage.setItem error:', error);
-    }
-  },
-  removeItem: async (key: string): Promise<void> => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.removeItem(key);
-      }
-    } catch (error) {
-      console.error('AsyncStorage.removeItem error:', error);
-    }
-  },
-};
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AdminLoginScreen() {
   const { login } = useAdmin();
