@@ -80,7 +80,8 @@ function RootLayoutNav() {
         name="admin-dashboard" 
         options={{ 
           title: "Dashboard",
-          headerShown: false
+          headerShown: true,
+          headerTitleAlign: 'center'
         }} 
       />
       <Stack.Screen 

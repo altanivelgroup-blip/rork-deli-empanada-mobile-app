@@ -33,7 +33,7 @@ import {
   Megaphone
 } from 'lucide-react-native';
 import { Order, OrderStatus } from '@/types/admin';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 
 const getScreenDimensions = () => {
   const { width } = Dimensions.get('window');
@@ -467,48 +467,34 @@ export default function AdminDashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.push('/')}
-          testID="back-to-menu"
-        >
-          <ArrowLeft size={24} color="#CC0000" />
-        </TouchableOpacity>
-        
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>DELI EMPANADA</Text>
-          <Text style={styles.headerSubtitle}>
-            {isManager ? '👑 Panel de Gerencia' : '👨‍🍳 Panel de Empleado'}
-          </Text>
-        </View>
-        
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setSoundEnabled(!soundEnabled)}
-          >
-            <Bell size={20} color={soundEnabled ? '#4CAF50' : '#999'} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleLogout}
-          >
-            <LogOut size={20} color="#CC0000" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* DEBUG PANEL - TEMPORARY */}
-      <View style={{ backgroundColor: '#FFF9E6', padding: 10, borderBottomWidth: 1, borderColor: '#FFE082' }}>
-        <Text style={{ fontSize: 12, color: '#333' }}>DEBUG INFO:</Text>
-        <Text style={{ fontSize: 11, color: '#666' }}>Current User: {currentUser?.name} ({currentUser?.id})</Text>
-        <Text style={{ fontSize: 11, color: '#666' }}>Role: {currentUser?.role}</Text>
-        <Text style={{ fontSize: 11, color: '#666', fontWeight: 'bold' }}>Is Manager: {isManager ? 'YES ✅' : 'NO ❌'}</Text>
-        <Text style={{ fontSize: 11, color: '#666' }}>Should show Ofertas tab: {isManager ? 'YES' : 'NO'}</Text>
-      </View>
+      <Stack.Screen
+        options={{
+          headerTitleAlign: 'center',
+          headerTitle: () => (
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>DELI EMPANADA</Text>
+              <Text style={{ color: '#FFE0E0', fontSize: 12 }}>
+                {isManager ? 'Panel de Gerencia' : 'Panel de Empleado'}
+              </Text>
+            </View>
+          ),
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+              <ArrowLeft size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setSoundEnabled(!soundEnabled)} style={{ padding: 8 }}>
+                <Bell size={20} color={soundEnabled ? '#FFFFFF' : '#FFE0E0'} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleLogout} style={{ padding: 8 }} testID="sign-out-button" >
+                <LogOut size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          )
+        }}
+      />
 
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
