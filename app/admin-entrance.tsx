@@ -1,16 +1,19 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
+  TextInput,
   TouchableOpacity,
-  Animated,
-  SafeAreaView,
-  Image,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Image
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Crown, Store } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Lock, User, Eye, EyeOff } from 'lucide-react-native';
 import { useAdmin } from '@/providers/AdminProvider';
 
 const AsyncStorage = {
@@ -25,265 +28,302 @@ const AsyncStorage = {
       localStorage.setItem(key, value);
     }
   },
+  removeItem: async (key: string): Promise<void> => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(key);
+    }
+  },
 };
-
-type UserRole = 'admin' | 'employee';
-type Branch = 'Norte' | 'Sur' | null;
-
-interface UserContext {
-  role: UserRole;
-  email: string;
-  branch: Branch;
-}
 
 export default function AdminEntranceScreen() {
   const { login } = useAdmin();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const [isLoading, setIsLoading] = useState(true);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const startAnimations = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 20,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, scaleAnim]);
+  const handleLogin = async () => {
+    console.log('🔐 Login attempt:', { email, passwordLength: password.length });
+    
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Por favor ingresa email y contraseña');
+      return;
+    }
 
-  useEffect(() => {
-    setIsLoading(false);
-    startAnimations();
-  }, [startAnimations]);
-
-  const handleRoleSelection = () => {
-    router.push('/admin-login');
+    setIsLoading(true);
+    try {
+      await AsyncStorage.removeItem('userRole');
+      await AsyncStorage.removeItem('userEmail');
+      await AsyncStorage.removeItem('userBranch');
+      
+      const emailLower = email.trim().toLowerCase();
+      console.log('🔍 Checking credentials for:', emailLower);
+      
+      const result = await login(emailLower, password);
+      
+      if (result.success && result.user) {
+        console.log('✅ Login successful:', result.user.role);
+        
+        if (result.user.role === 'manager') {
+          await AsyncStorage.setItem('userRole', 'admin');
+          await AsyncStorage.setItem('userEmail', result.user.email);
+          console.log('✅ Manager logged in, navigating to estadisticas');
+          router.replace('/estadisticas');
+        } else if (result.user.role === 'kitchen') {
+          await AsyncStorage.setItem('userRole', 'employee');
+          await AsyncStorage.setItem('userEmail', result.user.email);
+          
+          const branch = result.user.id === 'emp_1' ? 'Norte' : 'Sur';
+          await AsyncStorage.setItem('userBranch', branch);
+          console.log(`✅ Employee logged in (${branch}), navigating to pedidos`);
+          router.replace(`/pedidos?branch=${branch}`);
+        }
+      } else {
+        console.log('❌ Login failed:', result.error);
+        Alert.alert('Error', result.error || 'Credenciales inválidas');
+      }
+    } catch (error) {
+      console.error('❌ Error during login:', error);
+      Alert.alert('Error', 'Error al iniciar sesión: ' + (error as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  if (isLoading) {
-    return (
-      <LinearGradient
-        colors={['#CC0000', '#FF8C00']}
-        style={styles.container}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.content}>
-            <Text style={styles.loadingText}>Cargando...</Text>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
-    );
-  }
+  const fillManagerCredentials = () => {
+    setEmail('maria@deliempanada.com');
+    setPassword('admin123');
+  };
+
+  const fillEmployeeCredentials = () => {
+    setEmail('employee1@deliempanada.com');
+    setPassword('work123');
+  };
 
   return (
-    <LinearGradient
-      colors={['#CC0000', '#FF8C00']}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <SafeAreaView style={styles.safeArea}>
-        <Animated.View
-          style={[
-            styles.content,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
-          <View style={styles.logoContainer}>
-            <View style={styles.logoBadge}>
-              <Image
-                source={{
-                  uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/ymk4xvks1kuz0it56htjb',
-                }}
-                style={styles.logoImage}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <View style={styles.content}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.logoContainer}>
+              <Image 
+                source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/ymk4xvks1kuz0it56htjb' }}
+                style={styles.logo}
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.logoText}>DELI EMPANADA</Text>
+            <Text style={styles.title}>DELI EMPANADA</Text>
+            <Text style={styles.subtitle}>Panel de Administración</Text>
           </View>
 
-          <Text style={styles.heading}>Panel de Gerencia</Text>
-          <Text style={styles.subheading}>Selecciona tu rol para continuar</Text>
+          {/* Login Form */}
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
+              <User size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email o Usuario"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                testID="email-input"
+              />
+            </View>
 
-          <View style={styles.buttonsContainer}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleRoleSelection}
-            >
-              <LinearGradient
-                colors={['#FFD700', '#FFA500']}
-                style={styles.button}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+            <View style={styles.inputContainer}>
+              <Lock size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Contraseña"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                testID="password-input"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
               >
-                <Crown size={28} color="#CC0000" />
-                <Text style={styles.buttonTextAdmin}>Ingresar como Admin</Text>
-                <Text style={styles.buttonSubtext}>(Maria)</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                {showPassword ? (
+                  <EyeOff size={20} color="#666" />
+                ) : (
+                  <Eye size={20} color="#666" />
+                )}
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleRoleSelection}
+              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+              onPress={handleLogin}
+              disabled={isLoading}
+              testID="login-button"
             >
-              <LinearGradient
-                colors={['#FF8C00', '#FF6B00']}
-                style={styles.button}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Store size={28} color="#FFFFFF" />
-                <Text style={styles.buttonTextEmployee}>Empleado Norte</Text>
-                <Text style={styles.buttonSubtextWhite}>Sucursal Norte</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleRoleSelection}
-            >
-              <LinearGradient
-                colors={['#CC0000', '#990000']}
-                style={styles.button}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Store size={28} color="#FFFFFF" />
-                <Text style={styles.buttonTextEmployee}>Empleado Sur</Text>
-                <Text style={styles.buttonSubtextWhite}>Sucursal Sur</Text>
-              </LinearGradient>
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+              )}
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.footer}>
-            Deli Empanada © 2025 • Hecho con ❤️ en Colombia
-          </Text>
-        </Animated.View>
-      </SafeAreaView>
-    </LinearGradient>
+          {/* Demo Credentials */}
+          <View style={styles.demoSection}>
+            <Text style={styles.demoTitle}>Credenciales de Prueba:</Text>
+            
+            <TouchableOpacity
+              style={styles.demoButton}
+              onPress={fillManagerCredentials}
+            >
+              <Text style={styles.demoButtonText}>👑 GERENTE/PROPIETARIO</Text>
+              <Text style={styles.demoButtonSubtext}>Acceso completo + estadísticas</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.demoButton}
+              onPress={fillEmployeeCredentials}
+            >
+              <Text style={styles.demoButtonText}>👨‍🍳 EMPLEADO</Text>
+              <Text style={styles.demoButtonSubtext}>Solo gestión de pedidos</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F5F5'
   },
-  safeArea: {
-    flex: 1,
+  keyboardView: {
+    flex: 1
   },
   content: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 40,
+    maxWidth: 500,
+    alignSelf: 'center',
+    width: '100%'
   },
-  loadingText: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    fontWeight: '600',
+  header: {
+    alignItems: 'center',
+    marginBottom: 40
   },
   logoContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoBadge: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
-    marginBottom: 16,
+    alignItems: 'center',
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
-    overflow: 'hidden',
-    backgroundColor: 'transparent',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
   },
-  logoImage: {
-    width: 120,
-    height: 120,
+  logo: {
+    width: 60,
+    height: 60
   },
-  logoText: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 2,
-    textAlign: 'center',
-  },
-  heading: {
+  title: {
     fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    textAlign: 'center',
+    fontWeight: 'bold',
+    color: '#CC0000',
+    marginBottom: 8
   },
-  subheading: {
+  subtitle: {
     fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    marginBottom: 40,
-    textAlign: 'center',
+    color: '#666',
+    textAlign: 'center'
   },
-  buttonsContainer: {
-    width: '100%',
-    maxWidth: 400,
-    gap: 16,
+  form: {
+    marginBottom: 30
   },
-  button: {
-    flexDirection: 'column',
+  inputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: 16,
+    paddingHorizontal: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    gap: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2
   },
-  buttonTextAdmin: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#CC0000',
-    marginTop: 8,
+  inputIcon: {
+    marginRight: 12
   },
-  buttonTextEmployee: {
-    fontSize: 18,
-    fontWeight: '700',
+  input: {
+    flex: 1,
+    height: 50,
+    fontSize: 16,
+    color: '#333'
+  },
+  eyeIcon: {
+    padding: 4
+  },
+  loginButton: {
+    backgroundColor: '#CC0000',
+    borderRadius: 12,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8
+  },
+  loginButtonDisabled: {
+    opacity: 0.7
+  },
+  loginButtonText: {
     color: '#FFFFFF',
-    marginTop: 8,
+    fontSize: 16,
+    fontWeight: 'bold'
   },
-  buttonSubtext: {
+  demoSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  demoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+    textAlign: 'center'
+  },
+  demoButton: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF'
+  },
+  demoButtonText: {
     fontSize: 14,
-    color: '#CC0000',
-    opacity: 0.8,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4
   },
-  buttonSubtextWhite: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.8,
-  },
-  footer: {
+  demoButtonSubtext: {
     fontSize: 12,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginTop: 40,
-    opacity: 0.8,
-  },
+    color: '#666'
+  }
 });
