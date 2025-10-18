@@ -22,7 +22,8 @@ import {
   Calendar,
   Target,
   ArrowLeft,
-  LogIn
+  LogIn,
+  Tag
 } from 'lucide-react-native';
 import { router, Stack } from 'expo-router';
 
@@ -36,7 +37,7 @@ export default function AdminDashboardScreen() {
     logout
   } = useAdmin();
   
-  const [selectedTab, setSelectedTab] = useState<'orders' | 'analytics'>('analytics');
+  const [selectedTab, setSelectedTab] = useState<'orders' | 'analytics' | 'offers'>('analytics');
 
   const dailyStats = useMemo(() => getDailyStats(), [getDailyStats]);
   const weeklyStats = useMemo(() => getWeeklyStats(), [getWeeklyStats]);
@@ -182,7 +183,13 @@ export default function AdminDashboardScreen() {
       />
 
       <View style={styles.header}>
-        <View style={styles.headerIconButton} />
+        <TouchableOpacity 
+          style={styles.headerIconButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <ArrowLeft size={24} color="#FFFFFF" />
+        </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>DELI EMPANADA</Text>
           <Text style={styles.headerSubtitle}>🍴 Panel de Gerencia</Text>
@@ -214,6 +221,16 @@ export default function AdminDashboardScreen() {
           <BarChart3 size={18} color={selectedTab === 'analytics' ? Colors.light.primary : Colors.light.textLight} />
           <Text style={[styles.tabText, selectedTab === 'analytics' && styles.activeTabText]}>
             Estadísticas
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'offers' && styles.activeTab]}
+          onPress={() => router.push('/admin-offers')}
+        >
+          <Tag size={18} color={selectedTab === 'offers' ? Colors.light.primary : Colors.light.textLight} />
+          <Text style={[styles.tabText, selectedTab === 'offers' && styles.activeTabText]}>
+            Ofertas
           </Text>
         </TouchableOpacity>
       </View>
