@@ -123,6 +123,11 @@ export default function PromoBanner() {
 
 const styles = StyleSheet.create({
   container: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
     paddingHorizontal: 16,
     paddingVertical: 8
   },
