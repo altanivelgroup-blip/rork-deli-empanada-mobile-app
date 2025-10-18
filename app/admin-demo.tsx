@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAdmin } from '@/providers/AdminProvider';
 import { Order } from '@/types/admin';
 import { Plus, Play, Pause, RotateCcw } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 const mockCustomers = [
   { name: 'Ana García', phone: '+57 300 1234567', address: 'Calle 123 #45-67' },
@@ -92,14 +94,27 @@ export default function AdminDemoScreen() {
         { 
           text: 'Reiniciar', 
           style: 'destructive', 
-          onPress: () => {
-            // Clear localStorage
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('admin_orders');
-            }
-            // Reload the page to reset state
-            if (typeof window !== 'undefined') {
-              window.location.reload();
+          onPress: async () => {
+            try {
+              // Clear AsyncStorage
+              await AsyncStorage.removeItem('admin_orders');
+              await AsyncStorage.removeItem('admin_current_user');
+              await AsyncStorage.removeItem('userRole');
+              await AsyncStorage.removeItem('userEmail');
+              await AsyncStorage.removeItem('userBranch');
+              
+              // Navigate to home screen and reload
+              router.replace('/');
+              
+              // For web, reload the page
+              if (typeof window !== 'undefined') {
+                setTimeout(() => {
+                  window.location.reload();
+                }, 100);
+              }
+            } catch (error) {
+              console.error('Error clearing data:', error);
+              Alert.alert('Error', 'No se pudo reiniciar los datos');
             }
           }
         }

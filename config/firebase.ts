@@ -1,7 +1,14 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { 
+  getAuth, 
+  Auth, 
+  getReactNativePersistence,
+  initializeAuth
+} from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -22,16 +29,38 @@ try {
   
   if (hasAllConfig) {
     app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
+    
+    // Initialize Auth with AsyncStorage persistence for React Native
+    // This prevents "localStorage not found" errors on iOS/iPad
+    if (Platform.OS === 'web') {
+      // Use default persistence on web
+      auth = getAuth(app);
+    } else {
+      // Use AsyncStorage persistence on native platforms (iOS, Android)
+      auth = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage)
+      });
+    }
+    
     db = getFirestore(app);
     storage = getStorage(app);
-    console.log('✅ Firebase initialized successfully');
+    console.log('✅ Firebase initialized successfully with AsyncStorage persistence');
   } else {
     console.warn('⚠️ Firebase config incomplete, running without Firebase');
   }
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error);
   console.warn('⚠️ App will continue without Firebase');
+  
+  // Try to initialize with fallback auth if persistence fails
+  if (app && !auth) {
+    try {
+      auth = getAuth(app);
+      console.log('⚠️ Firebase Auth initialized with fallback (default persistence)');
+    } catch (fallbackError) {
+      console.error('❌ Firebase Auth fallback failed:', fallbackError);
+    }
+  }
 }
 
 export { app, auth, db, storage };

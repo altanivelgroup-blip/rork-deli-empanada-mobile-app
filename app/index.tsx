@@ -17,6 +17,8 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const logoScaleAnim = useRef(new Animated.Value(1)).current;
+  const [isLongPressing, setIsLongPressing] = React.useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -39,24 +41,56 @@ export default function HomeScreen() {
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         console.log('Touch started on logo');
+        setIsLongPressing(true);
+        
+        // Visual feedback - pulse animation
+        Animated.sequence([
+          Animated.timing(logoScaleAnim, {
+            toValue: 1.1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(logoScaleAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+        
+        // Reduced timeout for iPad - 1 second instead of 1.5 seconds
         longPressTimer.current = setTimeout(() => {
           console.log('Long press detected - navigating to admin entrance');
+          setIsLongPressing(false);
           router.push('/admin-entrance');
-        }, 1500);
+        }, 1000); // Reduced from 1500ms to 1000ms
       },
       onPanResponderRelease: () => {
         console.log('Touch released');
+        setIsLongPressing(false);
         if (longPressTimer.current) {
           clearTimeout(longPressTimer.current);
           longPressTimer.current = null;
         }
+        // Reset logo scale
+        Animated.timing(logoScaleAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
       },
       onPanResponderTerminate: () => {
         console.log('Touch terminated');
+        setIsLongPressing(false);
         if (longPressTimer.current) {
           clearTimeout(longPressTimer.current);
           longPressTimer.current = null;
         }
+        // Reset logo scale
+        Animated.timing(logoScaleAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
       },
     })
   ).current;
@@ -80,11 +114,16 @@ export default function HomeScreen() {
           },
         ]}
       >
-        <View
-          style={styles.logoContainer}
+        <Animated.View
+          style={[
+            styles.logoContainer,
+            {
+              transform: [{ scale: logoScaleAnim }],
+            },
+          ]}
           {...panResponder.panHandlers}
         >
-          <View style={styles.logoBadge}>
+          <View style={[styles.logoBadge, isLongPressing && styles.logoBadgePressing]}>
             <Image
               source={{
                 uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/ymk4xvks1kuz0it56htjb',
@@ -93,7 +132,10 @@ export default function HomeScreen() {
               resizeMode="contain"
             />
           </View>
-        </View>
+          {isLongPressing && (
+            <Text style={styles.longPressIndicator}>Cargando panel admin...</Text>
+          )}
+        </Animated.View>
 
         <Text style={styles.title}>DELI</Text>
         <Text style={styles.subtitle}>EMPANADA</Text>
@@ -170,6 +212,18 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 140,
     height: 140,
+  },
+  logoBadgePressing: {
+    backgroundColor: 'rgba(255, 215, 0, 0.3)',
+    borderWidth: 3,
+    borderColor: '#FFD700',
+  },
+  longPressIndicator: {
+    marginTop: 12,
+    fontSize: 12,
+    color: '#FFD700',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   title: {
     fontSize: 48,
